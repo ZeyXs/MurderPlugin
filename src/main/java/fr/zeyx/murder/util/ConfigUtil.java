@@ -21,6 +21,7 @@ public class ConfigUtil {
     }
 
     public static Location locationFrom(ConfigurationSection section) {
+        if (section == null) return null;
         if (section.getString("world") == null) return null;
         World world = Bukkit.getWorld(section.getString("world"));
         return new Location(world, section.getDouble("x"), section.getDouble("y"), section.getDouble("z"), (float) section.getDouble("yaw"), (float) section.getDouble("pitch"));

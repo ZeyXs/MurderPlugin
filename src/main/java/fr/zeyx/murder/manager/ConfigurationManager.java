@@ -23,6 +23,7 @@ public class ConfigurationManager {
     private final YamlConfiguration rollbackConfiguration;
     private final File arenasFile;
     private final File rollbackFile;
+    private Location lobbyLocation;
 
     public ConfigurationManager() {
         this.arenasFile = new File(MurderPlugin.getInstance().getDataFolder(), "arenas.yml");
@@ -37,18 +38,21 @@ public class ConfigurationManager {
             saveArenaConfig();
             saveRollbackConfig();
         }
+
+        this.lobbyLocation = ConfigUtil.locationFrom(arenasConfiguration.getConfigurationSection("lobby"));
     }
 
     @SuppressWarnings("ALL")
     public List<Arena> loadArenas() {
         List<Arena> arenaList = new ArrayList<>();
         for (String arenaName : arenasConfiguration.getKeys(false)) {
+            if (arenaName.equalsIgnoreCase("lobby")) {
+                continue;
+            }
             ConfigurationSection section = arenasConfiguration.getConfigurationSection(arenaName);
             Arena arena = new Arena(arenaName,
                     section.getString("displayName"),
                     ConfigUtil.locationFrom(section.getConfigurationSection("spawnLocation")),
-                    ConfigUtil.locationFrom(section.getConfigurationSection("spectatorLocation")),
-                    new ArrayList<>(),
                     new ArrayList<>(),
                     new InitArenaState()
             );
@@ -84,13 +88,27 @@ public class ConfigurationManager {
         ConfigurationSection arenaSection = arenasConfiguration.createSection(arena.getName());
         arenaSection.set("displayName", arena.getDisplayName());
         ConfigUtil.writeLocation(arena.getSpawnLocation(), arenaSection.createSection("spawnLocation"));
-        ConfigUtil.writeLocation(arena.getSpectatorLocation(), arenaSection.createSection("spectatorLocation"));
         saveArenaConfig();
     }
 
     public void removeArena(Arena arena) {
         if (arenasConfiguration.isConfigurationSection(arena.getName())) {
             arenasConfiguration.set(arena.getName(), null);
+        }
+        saveArenaConfig();
+    }
+
+    public Location getLobbyLocation() {
+        return lobbyLocation;
+    }
+
+    public void setLobbyLocation(Location lobbyLocation) {
+        this.lobbyLocation = lobbyLocation;
+        if (lobbyLocation == null) {
+            arenasConfiguration.set("lobby", null);
+        } else {
+            arenasConfiguration.set("lobby", null);
+            ConfigUtil.writeLocation(lobbyLocation, arenasConfiguration.createSection("lobby"));
         }
         saveArenaConfig();
     }

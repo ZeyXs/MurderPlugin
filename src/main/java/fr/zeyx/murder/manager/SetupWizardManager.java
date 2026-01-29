@@ -29,7 +29,6 @@ public class SetupWizardManager implements Listener {
     private Map<UUID, TemporaryArena> inWizard = new HashMap<>();
 
     private final String SET_ARENA_SPAWN_ITEM_NAME = ChatUtil.color("&aSet Spawn Location &7(Right-click)");
-    private final String SET_ARENA_SPECTATOR_ITEM_NAME = ChatUtil.color("&dSet Spectator Location &7(Right-click)");
     private final String SET_ARENA_DISPLAY_NAME_ITEM_NAME = ChatUtil.color("&3Set Arena Name &7(Right-click)");
     private final String SAVE_ARENA_ITEM_NAME = ChatUtil.color("&aSave Arena &7(Right-click)");
     private final String CANCEL_ITEM_NAME = ChatUtil.color("&cCancel &7(Right-click)");
@@ -62,7 +61,6 @@ public class SetupWizardManager implements Listener {
         Map<Material, ImmutablePair<String, Integer>> wizardItems = Map.of(
                 Material.NAME_TAG, new ImmutablePair<>(SET_ARENA_DISPLAY_NAME_ITEM_NAME, 0),
                 Material.ENDER_PEARL, new ImmutablePair<>(SET_ARENA_SPAWN_ITEM_NAME, 1),
-                Material.ENDER_EYE, new ImmutablePair<>(SET_ARENA_SPECTATOR_ITEM_NAME, 2),
                 Material.RED_BANNER, new ImmutablePair<>(CANCEL_ITEM_NAME, 7),
                 Material.GREEN_BANNER, new ImmutablePair<>(SAVE_ARENA_ITEM_NAME, 8)
         );
@@ -108,12 +106,6 @@ public class SetupWizardManager implements Listener {
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
             player.sendMessage(ChatUtil.color("&a◆ &7Players spawn location set! &d" + ChatUtil.displayLocation(location)));
 
-        } else if (itemName.equalsIgnoreCase(SET_ARENA_SPECTATOR_ITEM_NAME)) {
-            Location location = player.getLocation();
-            arena.setSpectatorLocation(location);
-            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
-            player.sendMessage(ChatUtil.color("&a◆ &7Spectators spawn location set! &d" + ChatUtil.displayLocation(location)));
-
         } else if (itemName.equalsIgnoreCase(SET_ARENA_DISPLAY_NAME_ITEM_NAME)) {
             player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 50, 1);
             new AnvilGUI.Builder()
@@ -139,11 +131,6 @@ public class SetupWizardManager implements Listener {
 
             if (arena.getSpawnLocation() == null) {
                 player.sendMessage(ChatUtil.color("&c◆ &7Please set a player spawn location for the arena."));
-                return;
-            }
-
-            if (arena.getSpectatorLocation() == null) {
-                player.sendMessage(ChatUtil.color("&c◆ &7Please set a spectator spawn location for the arena."));
                 return;
             }
 

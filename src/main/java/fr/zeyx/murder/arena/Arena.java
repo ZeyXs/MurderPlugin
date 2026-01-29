@@ -20,20 +20,16 @@ public class Arena {
     private String name;
     private String displayName;
     private Location spawnLocation;
-    private Location spectatorLocation;
     private List<UUID> activePlayers;
-    private List<UUID> spectatingPlayer;
     private ArenaState arenaState;
 
     public final String LEAVE_ITEM = ChatUtil.color("&cLeave &7(Right-click)");
 
-    public Arena(String name, String displayName, Location spawnLocation, Location spectatorLocation, List<UUID> activePlayers, List<UUID> spectatingPlayers, ArenaState arenaState) {
+    public Arena(String name, String displayName, Location spawnLocation, List<UUID> activePlayers, ArenaState arenaState) {
         this.name = name;
         this.displayName = displayName;
         this.spawnLocation = spawnLocation;
-        this.spectatorLocation = spectatorLocation;
         this.activePlayers = activePlayers;
-        this.spectatingPlayer = spectatingPlayers;
         this.arenaState = arenaState;
     }
 
@@ -49,16 +45,8 @@ public class Arena {
         return spawnLocation;
     }
 
-    public Location getSpectatorLocation() {
-        return spectatorLocation;
-    }
-
     public List<UUID> getActivePlayers() {
         return activePlayers;
-    }
-
-    public List<UUID> getSpectatingPlayer() {
-        return spectatingPlayer;
     }
 
     public void setArenaSate(ArenaState arenaState) {
@@ -83,7 +71,10 @@ public class Arena {
         player.getInventory().clear();
         player.getInventory().setHeldItemSlot(0);
         player.getInventory().setItem(8, new ItemBuilder(Material.BARRIER).setName(LEAVE_ITEM).toItemStack());
-        player.teleport(spawnLocation);
+        Location lobbyLocation = gameManager.getConfigurationManager().getLobbyLocation();
+        if (lobbyLocation != null) {
+            player.teleport(lobbyLocation);
+        }
 
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 50, 1);
         sendArenaMessage(ChatUtil.color("&8◆ ") + ChatColor.of("#ff731c") + player.getDisplayName() + ChatUtil.color(" &7joined the game! ") + ChatColor.of("#ffba3b") + "(" + activePlayers.size() + "/12)");
@@ -97,6 +88,10 @@ public class Arena {
     public void removePlayer(Player player, GameManager gameManager) {
         if (!(activePlayers.remove(player.getUniqueId()))) return;
         gameManager.getConfigurationManager().loadRollback(player);
+        Location lobbyLocation = gameManager.getConfigurationManager().getLobbyLocation();
+        if (lobbyLocation != null) {
+            player.teleport(lobbyLocation);
+        }
 
         if (!(arenaState instanceof ActiveArenaState activeArenaState)) {
             player.sendMessage(ChatUtil.color("&c◆ &7You left the game."));

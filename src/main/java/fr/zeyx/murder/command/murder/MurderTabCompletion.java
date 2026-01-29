@@ -45,7 +45,10 @@ public class MurderTabCompletion implements TabCompleter {
                     return filterByPrefix(Arrays.asList("start"), args[1]);
                 }
                 case "join" -> {
-                    return filterByPrefix(getArenaNames(), args[1]);
+                    return Collections.emptyList();
+                }
+                case "lobby" -> {
+                    return filterByPrefix(Arrays.asList("set"), args[1]);
                 }
                 default -> {
                     return Collections.emptyList();

@@ -25,46 +25,30 @@ public class JoinSubCommand implements PlayerSubCommand {
             return;
         }
 
+        if (args.length > 0) {
+            player.sendMessage(ChatUtil.color("&cUsage : /murder join"));
+            return;
+        }
+
         Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
         if (currentArena.isPresent()) {
             player.sendMessage(ChatUtil.color("&c◆ &7You are already in an arena."));
             return;
         }
 
-        if (gameManager.getArenaManager().getArenas().size() == 1) {
-            Arena arena = gameManager.getArenaManager().getArenas().get(0);
-            arena.addPlayer(player, gameManager);
+        if (gameManager.getConfigurationManager().getLobbyLocation() == null) {
+            player.sendMessage(ChatUtil.color("&c◆ &7Lobby location is not set."));
             return;
         }
 
-        Optional<Arena> optionalArena = findArena(args);
-        if (optionalArena.isEmpty()) {
-            player.sendMessage(ChatUtil.color("&c◆ &7That arena doesn't exist."));
-            return;
-        }
-
-        Arena arena = optionalArena.get();
+        Arena arena = gameManager.getArenaManager().getArenas().get(0);
         if (arena.getArenaState() instanceof ActiveArenaState) {
-            player.sendMessage("&a◆ &7The game is still running. You joined as spectator.");
+            player.sendMessage(ChatUtil.color("&c◆ &7The game is already running."));
             return;
         }
 
         arena.addPlayer(player, gameManager);
 
-    }
-
-    public Optional<Arena> findArena(String[] commandArgs) {
-        StringBuilder name = new StringBuilder();
-
-        int index = 0;
-        for (String arg : commandArgs) {
-            name.append(arg);
-            if (index == commandArgs.length - 2) {
-                name.append("_");
-            }
-            index++;
-        }
-        return gameManager.getArenaManager().findArena(name.toString());
     }
 
     @Override

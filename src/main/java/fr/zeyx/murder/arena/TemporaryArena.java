@@ -10,7 +10,6 @@ public class TemporaryArena {
     private String name;
     private String displayName;
     private Location spawnLocation;
-    private Location spectatorLocation;
 
     public TemporaryArena() {
 
@@ -20,19 +19,17 @@ public class TemporaryArena {
         this.name = arena.getName();
         this.displayName = arena.getDisplayName();
         this.spawnLocation = arena.getSpawnLocation();
-        this.spectatorLocation = arena.getSpectatorLocation();
 
     }
 
-    public TemporaryArena(String name, String displayName, Location spawnLocation, Location spectatorLocation) {
+    public TemporaryArena(String name, String displayName, Location spawnLocation) {
         this.name = name;
         this.displayName = name;
         this.spawnLocation = spawnLocation;
-        this.spectatorLocation = spectatorLocation;
     }
 
     public Arena toArena() {
-        return new Arena(name, displayName, spawnLocation, spectatorLocation, new ArrayList<>(), new ArrayList<>(), new InitArenaState());
+        return new Arena(name, displayName, spawnLocation, new ArrayList<>(), new InitArenaState());
     }
 
     public String getName() {
@@ -54,14 +51,6 @@ public class TemporaryArena {
 
     public void setSpawnLocation(Location spawnLocation) {
         this.spawnLocation = spawnLocation;
-    }
-
-    public Location getSpectatorLocation() {
-        return spectatorLocation;
-    }
-
-    public void setSpectatorLocation(Location spectatorLocation) {
-        this.spectatorLocation = spectatorLocation;
     }
 
 }

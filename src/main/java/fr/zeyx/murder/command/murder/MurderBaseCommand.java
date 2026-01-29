@@ -25,13 +25,14 @@ public class MurderBaseCommand implements CommandExecutor {
         subCommandList.add(new ArenaSubCommand(gameManager));
         subCommandList.add(new DebugSubCommand(gameManager));
         subCommandList.add(new JoinSubCommand(gameManager));
+        subCommandList.add(new LobbySubCommand(gameManager));
         subCommandList.add(new LeaveSubCommand(gameManager));
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatUtil.color("&cUsage : /murder <join|arena|leave|debug>"));
+            sender.sendMessage(ChatUtil.color("&cUsage : /murder <join|arena|leave|debug|lobby>"));
             return false;
         }
 
@@ -42,7 +43,7 @@ public class MurderBaseCommand implements CommandExecutor {
 
 
         if (subCommandOptional.isEmpty()) {
-            sender.sendMessage(ChatUtil.color("&cUsage : /murder <join|arena|leave|debug>"));
+            sender.sendMessage(ChatUtil.color("&cUsage : /murder <join|arena|leave|debug|lobby>"));
             return false;
         }
 
