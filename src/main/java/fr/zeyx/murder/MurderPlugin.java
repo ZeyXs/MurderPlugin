@@ -1,8 +1,11 @@
 package fr.zeyx.murder;
 
+import fr.zeyx.murder.command.CommandRegistrar;
 import fr.zeyx.murder.command.murder.MurderBaseCommand;
 import fr.zeyx.murder.command.murder.MurderTabCompletion;
 import fr.zeyx.murder.manager.GameManager;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class MurderPlugin extends JavaPlugin {
@@ -20,9 +23,21 @@ public final class MurderPlugin extends JavaPlugin {
     }
 
     private void initCommand() {
+        CommandRegistrar registrar = new CommandRegistrar(this);
+        registerAllCommands(registrar);
+    }
+
+    private void registerAllCommands(CommandRegistrar registrar) {
         MurderBaseCommand murderBaseCommand = new MurderBaseCommand(gameManager);
-        getCommand("murder").setExecutor(murderBaseCommand);
-        getCommand("murder").setTabCompleter(new MurderTabCompletion(gameManager, murderBaseCommand));
+        MurderTabCompletion murderTabCompletion = new MurderTabCompletion(gameManager, murderBaseCommand);
+        registerCommand(registrar, "murder", "Base command for the Murder mini-game.", murderBaseCommand, murderTabCompletion);
+    }
+
+    private void registerCommand(CommandRegistrar registrar, String name, String description, CommandExecutor executor, TabCompleter tabCompleter) {
+        boolean registered = registrar.registerCommand(name, description, executor, tabCompleter);
+        if (!registered) {
+            getLogger().warning("Failed to register /" + name + " command. It may already exist.");
+        }
     }
 
     public static MurderPlugin getInstance() {

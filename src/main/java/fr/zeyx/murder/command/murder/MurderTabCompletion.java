@@ -42,13 +42,10 @@ public class MurderTabCompletion implements TabCompleter {
                     return filterByPrefix(Arrays.asList("list", "create", "edit", "remove"), args[1]);
                 }
                 case "debug" -> {
-                    return filterByPrefix(Arrays.asList("start"), args[1]);
-                }
-                case "join" -> {
-                    return Collections.emptyList();
+                    return filterByPrefix(List.of("start"), args[1]);
                 }
                 case "lobby" -> {
-                    return filterByPrefix(Arrays.asList("set"), args[1]);
+                    return filterByPrefix(List.of("set"), args[1]);
                 }
                 default -> {
                     return Collections.emptyList();

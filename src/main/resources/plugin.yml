@@ -3,6 +3,3 @@ version: '1.0-SNAPSHOT'
 main: fr.zeyx.murder.MurderPlugin
 api-version: '1.21'
 description: Murder plugin inspired by MCPZ mini-game.
-commands:
-  murder:
-    description: Base command for the Murder mini-game.
