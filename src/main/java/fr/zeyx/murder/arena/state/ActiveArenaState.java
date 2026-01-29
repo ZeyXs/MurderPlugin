@@ -47,6 +47,7 @@ public class ActiveArenaState extends ArenaState {
             if (player == null) continue;
             player.teleport(arena.getSpawnLocation());
             player.getInventory().clear();
+            gameManager.getScoreboardManager().showGameBoard(player);
         }
     }
 

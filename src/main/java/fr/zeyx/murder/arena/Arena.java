@@ -75,6 +75,7 @@ public class Arena {
         if (lobbyLocation != null) {
             player.teleport(lobbyLocation);
         }
+        updateLobbyBoards(gameManager);
 
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 50, 1);
         sendArenaMessage(ChatUtil.color("&8◆ ") + ChatColor.of("#ff731c") + player.getDisplayName() + ChatUtil.color(" &7joined the game! ") + ChatColor.of("#ffba3b") + "(" + activePlayers.size() + "/12)");
@@ -92,6 +93,8 @@ public class Arena {
         if (lobbyLocation != null) {
             player.teleport(lobbyLocation);
         }
+        gameManager.getScoreboardManager().clear(player);
+        updateLobbyBoards(gameManager);
 
         if (!(arenaState instanceof ActiveArenaState activeArenaState)) {
             player.sendMessage(ChatUtil.color("&c◆ &7You left the game."));
@@ -127,6 +130,16 @@ public class Arena {
         for (UUID playerId : activePlayers) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null) removePlayer(player, gameManager);
+        }
+    }
+
+    private void updateLobbyBoards(GameManager gameManager) {
+        int lobbyPlayers = activePlayers.size();
+        for (UUID playerId : activePlayers) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null) {
+                gameManager.getScoreboardManager().showLobbyBoard(player, lobbyPlayers);
+            }
         }
     }
 }
