@@ -64,6 +64,7 @@ public class Arena {
         activePlayers.add(player.getUniqueId());
 
         gameManager.getConfigurationManager().saveRollback(player);
+        player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
         player.setGameMode(GameMode.ADVENTURE);
         player.setHealth(20);
         player.setFoodLevel(20);
