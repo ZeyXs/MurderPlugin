@@ -67,7 +67,7 @@ tasks.shadowJar {
 }
 
 /**
- * Chemin vers le dossier plugins de ton serveur
+ * Chemin vers le dossier plugins de ton serveurl
  */
 def serverPlugins = file("../mcpz-murder/plugins")
 
@@ -81,6 +81,37 @@ tasks.register("copyToServer") {
             from(tasks.named("shadowJar").flatMap { it.archiveFile })
             into(serverPlugins)
         }
+    }
+}
+
+/**
+ * SCP deploy to remote server (configure in gradle.properties)
+ * deployHost=example.com
+ * deployUser=mcuser
+ * deployPath=/home/mcuser/server/plugins
+ * deployKey=/home/mcuser/.ssh/id_ed25519 (optional)
+ */
+def deployHost = findProperty("deployHost")
+def deployUser = findProperty("deployUser")
+def deployPath = findProperty("deployPath")
+def deployKey = findProperty("deployKey")
+
+tasks.register("scpToServer") {
+    dependsOn(tasks.named("shadowJar"))
+    def jarProvider = tasks.named("shadowJar").flatMap { it.archiveFile }
+    inputs.file(jarProvider)
+
+    doLast {
+        if (!deployHost || !deployUser || !deployPath) {
+            throw new GradleException("Missing deployHost/deployUser/deployPath in gradle.properties")
+        }
+        def jar = jarProvider.get().asFile
+        def cmd = ["scp"]
+        if (deployKey) {
+            cmd += ["-i", deployKey.toString()]
+        }
+        cmd += [jar.absolutePath, "${deployUser}@${deployHost}:${deployPath}"]
+        exec { commandLine cmd }
     }
 }
 
