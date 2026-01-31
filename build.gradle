@@ -1,7 +1,14 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
 plugins {
     id 'java'
     id("xyz.jpenilla.run-paper") version "2.3.1"
     id "com.gradleup.shadow" version "8.3.6"
+    id "org.hidetake.ssh" version "2.12.0"
 }
 
 group = 'fr.zeyx'
@@ -67,57 +74,59 @@ tasks.shadowJar {
 }
 
 /**
- * Chemin vers le dossier plugins de ton serveurl
+ * SFTP deploy
  */
-def serverPlugins = file("../mcpz-murder/plugins")
+def envOrProp = { String propName, String envName ->
+    def value = project.findProperty(propName)
+    if (value == null || value.toString().trim().isEmpty()) {
+        value = System.getenv(envName)
+    }
+    return value
+}
 
-/**
- * Copie automatiquement le jar dans le serveur
- */
-tasks.register("copyToServer") {
+def deployHost = envOrProp("deployHost", "DEPLOY_HOST")
+def deployUser = envOrProp("deployUser", "DEPLOY_USER")
+def deployPassword = envOrProp("deployPassword", "DEPLOY_PASSWORD")
+def deployPath = envOrProp("deployPath", "DEPLOY_PATH")
+def deployPortRaw = envOrProp("deployPort", "DEPLOY_PORT")
+def deployStrictHostKeyCheckingRaw = envOrProp("deployStrictHostKeyChecking", "DEPLOY_STRICT_HOST_KEY_CHECKING")
+def deployPort = 22
+if (deployPortRaw) {
+    try {
+        deployPort = deployPortRaw.toString().toInteger()
+    } catch (Exception ignored) {
+        throw new GradleException("deployPort/DEPLOY_PORT must be an integer. Got: ${deployPortRaw}")
+    }
+}
+def strictHostKeyChecking = !(deployStrictHostKeyCheckingRaw?.toString()?.toLowerCase() in ["0", "false", "no", "off"])
+
+ssh.settings {
+    if (!strictHostKeyChecking) {
+        knownHosts = allowAnyHosts
+    }
+}
+
+tasks.register("deploySftp") {
     dependsOn(tasks.named("shadowJar"))
     doLast {
-        copy {
-            from(tasks.named("shadowJar").flatMap { it.archiveFile })
-            into(serverPlugins)
+        def missing = []
+        if (!deployHost) missing << "deployHost/DEPLOY_HOST"
+        if (!deployUser) missing << "deployUser/DEPLOY_USER"
+        if (!deployPassword) missing << "deployPassword/DEPLOY_PASSWORD"
+        if (!deployPath) missing << "deployPath/DEPLOY_PATH"
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing SFTP settings: ${missing.join(', ')}")
+        }
+
+        def jarFile = tasks.named("shadowJar").get().archiveFile.get().asFile
+        ssh.run {
+            session(host: deployHost, user: deployUser, port: deployPort, password: deployPassword) {
+                put from: jarFile, into: deployPath
+            }
         }
     }
 }
 
-/**
- * SCP deploy to remote server (configure in gradle.properties)
- * deployHost=example.com
- * deployUser=mcuser
- * deployPath=/home/mcuser/server/plugins
- * deployKey=/home/mcuser/.ssh/id_ed25519 (optional)
- */
-def deployHost = findProperty("deployHost")
-def deployUser = findProperty("deployUser")
-def deployPath = findProperty("deployPath")
-def deployKey = findProperty("deployKey")
-
-tasks.register("scpToServer") {
-    dependsOn(tasks.named("shadowJar"))
-    def jarProvider = tasks.named("shadowJar").flatMap { it.archiveFile }
-    inputs.file(jarProvider)
-
-    doLast {
-        if (!deployHost || !deployUser || !deployPath) {
-            throw new GradleException("Missing deployHost/deployUser/deployPath in gradle.properties")
-        }
-        def jar = jarProvider.get().asFile
-        def cmd = ["scp"]
-        if (deployKey) {
-            cmd += ["-i", deployKey.toString()]
-        }
-        cmd += [jar.absolutePath, "${deployUser}@${deployHost}:${deployPath}"]
-        exec { commandLine cmd }
-    }
-}
-
-/**
- * build déclenche automatiquement shadowJar + copie
- */
 tasks.build {
-    dependsOn("copyToServer")
+    dependsOn("deploySftp")
 }

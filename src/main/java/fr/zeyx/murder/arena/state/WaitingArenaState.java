@@ -29,6 +29,8 @@ public class WaitingArenaState extends ArenaState {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        if (!arena.isPlaying(player)) return;
         if (!event.hasItem()) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         if(!event.getItem().hasItemMeta()) return;
@@ -37,7 +39,7 @@ public class WaitingArenaState extends ArenaState {
         String itemName = event.getItem().getItemMeta().getDisplayName();
 
         if (itemName.equalsIgnoreCase(arena.LEAVE_ITEM)) {
-            arena.removePlayer(event.getPlayer(), gameManager);
+            arena.removePlayer(player, gameManager);
         }
     }
 

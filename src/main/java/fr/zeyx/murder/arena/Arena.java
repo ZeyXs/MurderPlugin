@@ -106,7 +106,7 @@ public class Arena {
             activeArenaState.alivePlayers.remove(player.getUniqueId());
         }
 
-        if (activePlayers.size() <= 2 && arenaState instanceof StartingArenaState startingArenaState) {
+        if (activePlayers.size() <= 3 && arenaState instanceof StartingArenaState startingArenaState) {
             startingArenaState.getArenaStartingTask().cancel();
             setArenaSate(new WaitingArenaState(gameManager, this));
             sendArenaMessage(ChatUtil.color("&8[&c!&8] &7Start cancelled! Need at least ") + ChatColor.of("#ff7e21") + "4 players " + ChatUtil.color("&7to start a game!"));
