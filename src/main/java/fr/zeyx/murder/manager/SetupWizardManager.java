@@ -55,7 +55,7 @@ public class SetupWizardManager implements Listener {
 
         player.setGameMode(GameMode.CREATIVE);
         player.getInventory().clear();
-        player.sendMessage(ChatUtil.color("&a◆ &7Arena setup mode activated."));
+        player.sendMessage(ChatUtil.prefixed("&aArena setup mode activated."));
         player.playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 50, 1);
 
         Map<Material, ImmutablePair<String, Integer>> wizardItems = Map.of(
@@ -104,7 +104,7 @@ public class SetupWizardManager implements Listener {
             Location location = player.getLocation();
             arena.setSpawnLocation(location);
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
-            player.sendMessage(ChatUtil.color("&a◆ &7Players spawn location set! &d" + ChatUtil.displayLocation(location)));
+            player.sendMessage(ChatUtil.prefixed("&aPlayers spawn location set! &d" + ChatUtil.displayLocation(location)));
 
         } else if (itemName.equalsIgnoreCase(SET_ARENA_DISPLAY_NAME_ITEM_NAME)) {
             player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 50, 1);
@@ -118,19 +118,19 @@ public class SetupWizardManager implements Listener {
                         }
                         arena.setDisplayName(state.getText());
                         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
-                        player.sendMessage(ChatUtil.color("&a◆ &7Set arena display name to &3" + state.getText() + "&7!"));
+                        player.sendMessage(ChatUtil.prefixed("&aSet arena display name to &3" + state.getText() + "&7!"));
                         return List.of(AnvilGUI.ResponseAction.close());
                     }).open(player);
 
         } else if (itemName.equalsIgnoreCase(SAVE_ARENA_ITEM_NAME)) {
 
             if (arena.getName() == null || arena.getName().isEmpty()) {
-                player.sendMessage(ChatUtil.color("&c◆ &7Please set a display name for the arena."));
+                player.sendMessage(ChatUtil.prefixed("&cPlease set a display name for the arena."));
                 return;
             }
 
             if (arena.getSpawnLocation() == null) {
-                player.sendMessage(ChatUtil.color("&c◆ &7Please set a player spawn location for the arena."));
+                player.sendMessage(ChatUtil.prefixed("&cPlease set a player spawn location for the arena."));
                 return;
             }
 
@@ -139,12 +139,12 @@ public class SetupWizardManager implements Listener {
             gameManager.getConfigurationManager().saveArena(saved);
             endWizard(player);
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 50, 1);
-            player.sendMessage(ChatUtil.color("&8[&a!&8] &7Successfully created &a" + saved.getDisplayName() + "&7!"));
+            player.sendMessage(ChatUtil.prefixed("&aSuccessfully created &a" + saved.getDisplayName() + "&7!"));
 
         } else if (itemName.equalsIgnoreCase(CANCEL_ITEM_NAME)) {
             endWizard(player);
             player.playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 50, 2);
-            player.sendMessage(ChatUtil.color("&8[&c!&8] &7Arena creation cancelled."));
+            player.sendMessage(ChatUtil.prefixed("&cArena creation cancelled."));
         }
 
     }

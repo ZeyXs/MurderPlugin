@@ -4,12 +4,14 @@ import fr.zeyx.murder.arena.Arena;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 public class ArenaManager {
 
     private List<Arena> arenaList = new ArrayList<>();
+    private MapVoteSession voteSession;
 
     public ArenaManager(List<Arena> arenas) {
         this.arenaList = arenas;
@@ -17,6 +19,21 @@ public class ArenaManager {
 
     public List<Arena> getArenas() {
         return arenaList;
+    }
+
+    public MapVoteSession getVoteSession() {
+        return voteSession;
+    }
+
+    public MapVoteSession getOrCreateVoteSession() {
+        if (voteSession == null) {
+            voteSession = createVoteSession();
+        }
+        return voteSession;
+    }
+
+    public void resetVoteSession() {
+        voteSession = null;
     }
 
     public void addArena(Arena arena) {
@@ -50,4 +67,15 @@ public class ArenaManager {
         return arenaList.stream().filter(arena -> arena.isPlaying(player)).findAny();
     }
 
+    private MapVoteSession createVoteSession() {
+        if (arenaList.isEmpty()) {
+            return new MapVoteSession(Collections.emptyList());
+        }
+        List<Arena> candidates = new ArrayList<>(arenaList);
+        Collections.shuffle(candidates);
+        if (candidates.size() > 3) {
+            candidates = candidates.subList(0, 3);
+        }
+        return new MapVoteSession(candidates);
+    }
 }

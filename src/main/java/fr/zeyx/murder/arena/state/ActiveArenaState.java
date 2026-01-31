@@ -5,6 +5,7 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.ArenaState;
 import fr.zeyx.murder.arena.task.ActiveArenaTask;
 import fr.zeyx.murder.manager.GameManager;
+import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -55,7 +56,7 @@ public class ActiveArenaState extends ArenaState {
         for (UUID playerId : alivePlayers) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) continue;
-            player.sendMessage("End of the game!");
+            player.sendMessage(ChatUtil.prefixed("&7End of the game!"));
         }
     }
 

@@ -17,18 +17,18 @@ public class LobbySubCommand implements PlayerSubCommand {
     @Override
     public void execute(Player player, String[] args) {
         if (!player.hasPermission("murder.admin")) {
-            player.sendMessage(ChatUtil.color("&cYou don't have permission to use this command."));
+            player.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
             return;
         }
 
         if (args.length == 0 || !args[0].equalsIgnoreCase("set")) {
-            player.sendMessage(ChatUtil.color("&cUsage : /murder lobby set"));
+            player.sendMessage(ChatUtil.prefixed("&cUsage: /murder lobby set"));
             return;
         }
 
         Location location = player.getLocation();
         gameManager.getConfigurationManager().setLobbyLocation(location);
-        player.sendMessage(ChatUtil.color("&a◆ &7Lobby location set to &d" + ChatUtil.displayLocation(location)));
+        player.sendMessage(ChatUtil.prefixed("&aLobby location set to &d" + ChatUtil.displayLocation(location)));
     }
 
     @Override

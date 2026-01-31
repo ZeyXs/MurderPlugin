@@ -79,7 +79,7 @@ public class Arena {
         updateLobbyBoards(gameManager);
 
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 50, 1);
-        sendArenaMessage(ChatUtil.color("&8◆ ") + ChatColor.of("#ff731c") + player.getDisplayName() + ChatUtil.color(" &7joined the game! ") + ChatColor.of("#ffba3b") + "(" + activePlayers.size() + "/12)");
+        sendArenaMessage(ChatColor.of("#ff731c") + player.getDisplayName() + " &7joined the game! " + ChatColor.of("#ffba3b") + "(" + activePlayers.size() + "/12)");
 
         if (activePlayers.size() >= 2 && !(arenaState instanceof StartingArenaState)) {
             setArenaSate(new StartingArenaState(gameManager, this));
@@ -98,9 +98,9 @@ public class Arena {
         updateLobbyBoards(gameManager);
 
         if (!(arenaState instanceof ActiveArenaState activeArenaState)) {
-            player.sendMessage(ChatUtil.color("&c◆ &7You left the game."));
+            player.sendMessage(ChatUtil.prefixed("&7You left the game."));
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 50, 1);
-            sendArenaMessage(ChatUtil.color("&8◆ ") + ChatColor.of("#ff2424") + player.getDisplayName() + ChatUtil.color(" &7left the game! ") + ChatColor.of("#ff4040") + "(" + activePlayers.size() + "/12)");
+            sendArenaMessage(ChatColor.of("#ff2424") + player.getDisplayName() + " &7left the game! " + ChatColor.of("#ff4040") + "(" + activePlayers.size() + "/12)");
         } else {
             player.removePotionEffect(PotionEffectType.SPEED);
             activeArenaState.alivePlayers.remove(player.getUniqueId());
@@ -109,7 +109,7 @@ public class Arena {
         if (activePlayers.size() <= 3 && arenaState instanceof StartingArenaState startingArenaState) {
             startingArenaState.getArenaStartingTask().cancel();
             setArenaSate(new WaitingArenaState(gameManager, this));
-            sendArenaMessage(ChatUtil.color("&8[&c!&8] &7Start cancelled! Need at least ") + ChatColor.of("#ff7e21") + "4 players " + ChatUtil.color("&7to start a game!"));
+            sendArenaMessage("&cStart cancelled! Need at least " + ChatColor.of("#ff7e21") + "4 players &7to start a game!");
         }
     }
 
@@ -121,7 +121,7 @@ public class Arena {
         for (UUID playerId : this.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null) {
-                player.sendMessage(ChatUtil.color(message));
+                player.sendMessage(ChatUtil.prefixed(message));
             }
         }
     }

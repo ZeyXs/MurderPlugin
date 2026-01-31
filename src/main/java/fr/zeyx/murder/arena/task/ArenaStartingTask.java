@@ -30,7 +30,7 @@ public class ArenaStartingTask extends BukkitRunnable {
         }
 
         if (timeUntilStart == 10 || timeUntilStart <= 5) {
-            arena.sendArenaMessage("&8[&a!&8] &7Game starting in " + ChatColor.of("#f58311") + timeUntilStart + (timeUntilStart == 1 ? "&7 second!" : "&7 seconds!"));
+            arena.sendArenaMessage("&aGame starting in " + ChatColor.of("#f58311") + timeUntilStart + (timeUntilStart == 1 ? "&7 second!" : "&7 seconds!"));
             for (UUID playerId : arena.getActivePlayers()) {
                 Player player = Bukkit.getPlayer(playerId);
                 if (player == null) continue;
