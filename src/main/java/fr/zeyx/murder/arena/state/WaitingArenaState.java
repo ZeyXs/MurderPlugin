@@ -3,6 +3,7 @@ package fr.zeyx.murder.arena.state;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.ArenaState;
 import fr.zeyx.murder.manager.GameManager;
+import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
@@ -16,6 +17,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 
 public class WaitingArenaState extends ArenaState {
 
@@ -31,14 +34,16 @@ public class WaitingArenaState extends ArenaState {
     public void onInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         if (!arena.isPlaying(player)) return;
+        if (event.getHand() != EquipmentSlot.HAND) return;
         if (!event.hasItem()) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         if(!event.getItem().hasItemMeta()) return;
 
         event.setCancelled(true);
-        String itemName = event.getItem().getItemMeta().getDisplayName();
-
-        if (itemName.equalsIgnoreCase(arena.LEAVE_ITEM)) {
+        ItemStack item = event.getItem();
+        String itemName = item.getItemMeta().getDisplayName();
+        if (itemName == null) return;
+        if (ChatUtil.stripColor(itemName).equalsIgnoreCase(ChatUtil.stripColor(arena.LEAVE_ITEM))) {
             arena.removePlayer(player, gameManager);
         }
     }

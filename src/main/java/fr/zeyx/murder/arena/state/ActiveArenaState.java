@@ -7,6 +7,7 @@ import fr.zeyx.murder.arena.task.ActiveArenaTask;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -15,7 +16,10 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDropItemEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.block.Action;
+import org.bukkit.inventory.EquipmentSlot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +60,8 @@ public class ActiveArenaState extends ArenaState {
         for (UUID playerId : alivePlayers) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) continue;
-            player.sendMessage(ChatUtil.prefixed("&7End of the game!"));
+            player.setGameMode(GameMode.SPECTATOR);
+            player.sendMessage(ChatUtil.prefixedComponent("&7End of the game!"));
         }
     }
 
@@ -76,6 +81,23 @@ public class ActiveArenaState extends ArenaState {
         Player player = event.getPlayer();
         if (arena.isPlaying(player)) {
             alivePlayers.remove(player.getUniqueId());
+            arena.removePlayer(player, gameManager);
+        }
+    }
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        if (!arena.isPlaying(player)) return;
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        if (!event.hasItem()) return;
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        if(!event.getItem().hasItemMeta()) return;
+
+        String itemName = event.getItem().getItemMeta().getDisplayName();
+        if (itemName == null) return;
+        if (ChatUtil.stripColor(itemName).equalsIgnoreCase(ChatUtil.stripColor(arena.LEAVE_ITEM))) {
+            event.setCancelled(true);
             arena.removePlayer(player, gameManager);
         }
     }

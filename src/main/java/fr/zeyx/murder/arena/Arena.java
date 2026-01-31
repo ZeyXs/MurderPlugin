@@ -10,6 +10,8 @@ import fr.zeyx.murder.util.ItemBuilder;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.List;
@@ -23,7 +25,11 @@ public class Arena {
     private List<UUID> activePlayers;
     private ArenaState arenaState;
 
-    public final String LEAVE_ITEM = ChatUtil.color("&cLeave &7(Right-click)");
+    public final String HOW_TO_PLAY_ITEM = ChatUtil.color("&6&lHow to Play&r&7 \u2022 Right Click");
+    public final String SELECT_EQUIPMENT_ITEM = ChatUtil.color("&2&lSelect Equipment&r&7 \u2022 Right Click");
+    public final String STORE_ITEM = ChatUtil.color("&b&lStore&r&7 \u2022 Right Click");
+    public final String VIEW_STATS_ITEM = ChatUtil.color("&c&lView Stats&r&7 \u2022 Right Click");
+    public final String LEAVE_ITEM = ChatUtil.color("&e&lLeave&r&7 \u2022 Right Click");
 
     public Arena(String name, String displayName, Location spawnLocation, List<UUID> activePlayers, ArenaState arenaState) {
         this.name = name;
@@ -68,10 +74,21 @@ public class Arena {
         player.setGameMode(GameMode.ADVENTURE);
         player.setHealth(20);
         player.setFoodLevel(20);
-        player.setTotalExperience(0);
+        player.setExperienceLevelAndProgress(0);
         player.getInventory().clear();
         player.getInventory().setHeldItemSlot(0);
-        player.getInventory().setItem(8, new ItemBuilder(Material.BARRIER).setName(LEAVE_ITEM).toItemStack());
+        player.getInventory().setItem(0, new ItemBuilder(Material.WRITTEN_BOOK).setName(HOW_TO_PLAY_ITEM).toItemStack());
+        player.getInventory().setItem(3, new ItemBuilder(Material.ENDER_CHEST).setName(SELECT_EQUIPMENT_ITEM).toItemStack());
+        player.getInventory().setItem(4, new ItemBuilder(Material.EMERALD).setName(STORE_ITEM).toItemStack());
+        ItemStack statsHead = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta skullMeta = (SkullMeta) statsHead.getItemMeta();
+        if (skullMeta != null) {
+            skullMeta.setOwningPlayer(player);
+            skullMeta.setDisplayName(VIEW_STATS_ITEM);
+            statsHead.setItemMeta(skullMeta);
+        }
+        player.getInventory().setItem(5, statsHead);
+        player.getInventory().setItem(8, new ItemBuilder(Material.CLOCK).setName(LEAVE_ITEM).toItemStack());
         Location lobbyLocation = gameManager.getConfigurationManager().getLobbyLocation();
         if (lobbyLocation != null) {
             player.teleport(lobbyLocation);
@@ -79,9 +96,9 @@ public class Arena {
         updateLobbyBoards(gameManager);
 
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 50, 1);
-        sendArenaMessage(ChatColor.of("#ff731c") + player.getDisplayName() + " &7joined the game! " + ChatColor.of("#ffba3b") + "(" + activePlayers.size() + "/12)");
+        gameManager.getArenaManager().getOrCreateVoteSession().sendVotePrompt(player);
 
-        if (activePlayers.size() >= 2 && !(arenaState instanceof StartingArenaState)) {
+        if (activePlayers.size() >= 4 && !(arenaState instanceof StartingArenaState)) {
             setArenaSate(new StartingArenaState(gameManager, this));
         }
     }
@@ -89,6 +106,9 @@ public class Arena {
     // TODO: Leave while in game
     public void removePlayer(Player player, GameManager gameManager) {
         if (!(activePlayers.remove(player.getUniqueId()))) return;
+        if (gameManager.getArenaManager().getVoteSession() != null) {
+            gameManager.getArenaManager().getVoteSession().removeVote(player.getUniqueId());
+        }
         gameManager.getConfigurationManager().loadRollback(player);
         Location lobbyLocation = gameManager.getConfigurationManager().getLobbyLocation();
         if (lobbyLocation != null) {
@@ -98,9 +118,7 @@ public class Arena {
         updateLobbyBoards(gameManager);
 
         if (!(arenaState instanceof ActiveArenaState activeArenaState)) {
-            player.sendMessage(ChatUtil.prefixed("&7You left the game."));
-            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 50, 1);
-            sendArenaMessage(ChatColor.of("#ff2424") + player.getDisplayName() + " &7left the game! " + ChatColor.of("#ff4040") + "(" + activePlayers.size() + "/12)");
+            player.sendMessage(ChatUtil.prefixedComponent("&7You left the game."));
         } else {
             player.removePotionEffect(PotionEffectType.SPEED);
             activeArenaState.alivePlayers.remove(player.getUniqueId());
@@ -109,7 +127,10 @@ public class Arena {
         if (activePlayers.size() <= 3 && arenaState instanceof StartingArenaState startingArenaState) {
             startingArenaState.getArenaStartingTask().cancel();
             setArenaSate(new WaitingArenaState(gameManager, this));
-            sendArenaMessage("&cStart cancelled! Need at least " + ChatColor.of("#ff7e21") + "4 players &7to start a game!");
+        }
+
+        if (activePlayers.isEmpty()) {
+            gameManager.getArenaManager().resetVoteSession();
         }
     }
 
@@ -121,7 +142,7 @@ public class Arena {
         for (UUID playerId : this.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null) {
-                player.sendMessage(ChatUtil.prefixed(message));
+                player.sendMessage(ChatUtil.prefixedComponent(message));
             }
         }
     }
@@ -142,5 +163,14 @@ public class Arena {
                 gameManager.getScoreboardManager().showLobbyBoard(player, lobbyPlayers);
             }
         }
+    }
+
+    public void transferPlayersTo(Arena target) {
+        if (target == null || target == this) {
+            return;
+        }
+        target.getActivePlayers().clear();
+        target.getActivePlayers().addAll(this.activePlayers);
+        this.activePlayers.clear();
     }
 }

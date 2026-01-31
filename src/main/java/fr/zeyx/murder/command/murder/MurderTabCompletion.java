@@ -4,6 +4,7 @@ package fr.zeyx.murder.command.murder;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.command.SubCommand;
 import fr.zeyx.murder.manager.GameManager;
+import fr.zeyx.murder.manager.MapVoteSession;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -46,6 +47,12 @@ public class MurderTabCompletion implements TabCompleter {
                 }
                 case "lobby" -> {
                     return filterByPrefix(List.of("set"), args[1]);
+                }
+                case "vote" -> {
+                    MapVoteSession voteSession = gameManager.getArenaManager().getVoteSession();
+                    List<String> candidates = voteSession == null ? getArenaNames() :
+                            voteSession.getCandidates().stream().map(Arena::getName).collect(Collectors.toList());
+                    return filterByPrefix(candidates, args[1]);
                 }
                 default -> {
                     return Collections.emptyList();

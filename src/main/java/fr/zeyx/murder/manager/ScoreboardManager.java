@@ -19,10 +19,11 @@ public class ScoreboardManager implements Listener {
     private final Map<UUID, FastBoard> boards = new HashMap<>();
 
     public void showLobbyBoard(Player player, int lobbyPlayers) {
+        String playerCountColor = lobbyPlayers < 4 ? "&c" : "&a";
         updateBoard(player, "&c&lMURDER", Arrays.asList(
                 "",
                 "&b&lPlaying",
-                "&a" + lobbyPlayers,
+                playerCountColor + lobbyPlayers,
                 " ",
                 "&e&lStats",
                 "Rank: &7Coal",

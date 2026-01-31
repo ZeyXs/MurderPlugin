@@ -1,9 +1,8 @@
 package fr.zeyx.murder.manager.task;
 
 import fr.zeyx.murder.manager.SetupWizardManager;
+import fr.zeyx.murder.util.ChatUtil;
 import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -31,7 +30,7 @@ public class SetupWizardTask extends BukkitRunnable {
         for (UUID playerId : uuids) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) return;
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(ChatColor.of("#fc9003") + "⚠ ᴀʀᴇɴᴀ sᴇᴛᴜᴘ ᴍᴏᴅᴇ ⚠"));
+            player.sendActionBar(ChatUtil.component(ChatColor.of("#fc9003") + "⚠ ᴀʀᴇɴᴀ sᴇᴛᴜᴘ ᴍᴏᴅᴇ ⚠"));
         }
     }
 

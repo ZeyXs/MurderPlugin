@@ -1,14 +1,27 @@
 package fr.zeyx.murder.util;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 
 public class ChatUtil {
 
     public static final String CHAT_PREFIX = "&c&lMURDER &7\u2022&r ";
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
 
     public static String color(String string) {
         return ChatColor.translateAlternateColorCodes('&', string);
+    }
+
+    public static Component component(String legacyText) {
+        String input = legacyText == null ? "" : legacyText;
+        return LEGACY_SERIALIZER.deserialize(color(input));
+    }
+
+    public static Component prefixedComponent(String message) {
+        String body = message == null ? "" : message;
+        return component(CHAT_PREFIX + body);
     }
 
     public static String prefixed(String message) {

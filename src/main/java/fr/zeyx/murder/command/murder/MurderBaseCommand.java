@@ -25,12 +25,13 @@ public class MurderBaseCommand implements CommandExecutor {
         subCommandList.add(new JoinSubCommand(gameManager));
         subCommandList.add(new LobbySubCommand(gameManager));
         subCommandList.add(new LeaveSubCommand(gameManager));
+        subCommandList.add(new VoteSubCommand(gameManager));
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatUtil.prefixed("&cUsage: /murder <join|arena|leave|debug|lobby>"));
+            sender.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder <join|arena|leave|debug|lobby|vote>"));
             return false;
         }
 
@@ -41,7 +42,7 @@ public class MurderBaseCommand implements CommandExecutor {
 
 
         if (subCommandOptional.isEmpty()) {
-            sender.sendMessage(ChatUtil.prefixed("&cUsage: /murder <join|arena|leave|debug|lobby>"));
+            sender.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder <join|arena|leave|debug|lobby|vote>"));
             return false;
         }
 
@@ -49,7 +50,7 @@ public class MurderBaseCommand implements CommandExecutor {
         SubCommand<?> subCommand = subCommandOptional.get();
         if (subCommand instanceof PlayerSubCommand playerSubCommand) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(ChatUtil.prefixed("&cYou must be a player to run this command."));
+                sender.sendMessage(ChatUtil.prefixedComponent("&cYou must be a player to run this command."));
                 return false;
             }
             playerSubCommand.execute((Player) sender, subCommandArgs);
