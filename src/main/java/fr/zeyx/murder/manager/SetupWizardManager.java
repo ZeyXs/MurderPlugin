@@ -27,7 +27,11 @@ public class SetupWizardManager implements Listener {
     private GameManager gameManager;
     private Map<UUID, TemporaryArena> inWizard = new HashMap<>();
 
-    private final String SET_ARENA_SPAWN_ITEM_NAME = ChatUtil.color("&aSet Spawn Location &7(Right-click)");
+    private static final int MIN_SPAWN_SPOTS = 15;
+    private static final int MIN_EMERALD_SPOTS = 1;
+
+    private final String ADD_SPAWN_SPOT_ITEM_NAME = ChatUtil.color("&aAdd Spawn Spot &7(Right-click)");
+    private final String ADD_EMERALD_SPOT_ITEM_NAME = ChatUtil.color("&2Add Emerald Spawn &7(Right-click)");
     private final String SET_ARENA_DISPLAY_NAME_ITEM_NAME = ChatUtil.color("&3Set Arena Name &7(Right-click)");
     private final String SAVE_ARENA_ITEM_NAME = ChatUtil.color("&aSave Arena &7(Right-click)");
     private final String CANCEL_ITEM_NAME = ChatUtil.color("&cCancel &7(Right-click)");
@@ -55,11 +59,13 @@ public class SetupWizardManager implements Listener {
         player.setGameMode(GameMode.CREATIVE);
         player.getInventory().clear();
         player.sendMessage(ChatUtil.prefixedComponent("&aArena setup mode activated."));
+        player.sendMessage(ChatUtil.prefixedComponent("&eRemaining spawn spots to place: &b" + remainingSpawnSpots(temporaryArena)));
         player.playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 50, 1);
 
         Map<Material, ImmutablePair<String, Integer>> wizardItems = Map.of(
                 Material.NAME_TAG, new ImmutablePair<>(SET_ARENA_DISPLAY_NAME_ITEM_NAME, 0),
-                Material.ENDER_PEARL, new ImmutablePair<>(SET_ARENA_SPAWN_ITEM_NAME, 1),
+                Material.ENDER_PEARL, new ImmutablePair<>(ADD_SPAWN_SPOT_ITEM_NAME, 1),
+                Material.EMERALD, new ImmutablePair<>(ADD_EMERALD_SPOT_ITEM_NAME, 2),
                 Material.RED_BANNER, new ImmutablePair<>(CANCEL_ITEM_NAME, 7),
                 Material.GREEN_BANNER, new ImmutablePair<>(SAVE_ARENA_ITEM_NAME, 8)
         );
@@ -99,11 +105,23 @@ public class SetupWizardManager implements Listener {
         String itemName = event.getItem().getItemMeta().getDisplayName();
         TemporaryArena arena = inWizard.get(player.getUniqueId());
 
-        if(itemName.equalsIgnoreCase(SET_ARENA_SPAWN_ITEM_NAME)) {
+        if(itemName.equalsIgnoreCase(ADD_SPAWN_SPOT_ITEM_NAME)) {
             Location location = player.getLocation();
-            arena.setSpawnLocation(location);
+            if (containsLocation(arena.getSpawnSpots(), location)) {
+                player.sendMessage(ChatUtil.prefixedComponent("&cThat spawn spot is already set."));
+                return;
+            }
+            if (arena.getSpawnSpots().size() >= MIN_SPAWN_SPOTS) {
+                player.sendMessage(ChatUtil.prefixedComponent("&cYou already placed the maximum of &e" + MIN_SPAWN_SPOTS + " &cspawn spots."));
+                return;
+            }
+            arena.getSpawnSpots().add(location);
+            if (arena.getSpawnLocation() == null) {
+                arena.setSpawnLocation(location);
+            }
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
-            player.sendMessage(ChatUtil.prefixedComponent("&aPlayers spawn location set! &d" + ChatUtil.displayLocation(location)));
+            player.sendMessage(ChatUtil.prefixedComponent("&aSpawn spot added! &d" + ChatUtil.displayLocation(location)));
+            player.sendMessage(ChatUtil.prefixedComponent("&eRemaining spawn spots to place: &b" + remainingSpawnSpots(arena)));
 
         } else if (itemName.equalsIgnoreCase(SET_ARENA_DISPLAY_NAME_ITEM_NAME)) {
             player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 50, 1);
@@ -121,6 +139,16 @@ public class SetupWizardManager implements Listener {
                         return List.of(AnvilGUI.ResponseAction.close());
                     }).open(player);
 
+        } else if (itemName.equalsIgnoreCase(ADD_EMERALD_SPOT_ITEM_NAME)) {
+            Location location = player.getLocation();
+            if (containsLocation(arena.getEmeraldSpots(), location)) {
+                player.sendMessage(ChatUtil.prefixedComponent("&cThat emerald spawn is already set."));
+                return;
+            }
+            arena.getEmeraldSpots().add(location);
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
+            player.sendMessage(ChatUtil.prefixedComponent("&aEmerald spawn added! &d" + ChatUtil.displayLocation(location)));
+
         } else if (itemName.equalsIgnoreCase(SAVE_ARENA_ITEM_NAME)) {
 
             if (arena.getName() == null || arena.getName().isEmpty()) {
@@ -128,8 +156,13 @@ public class SetupWizardManager implements Listener {
                 return;
             }
 
-            if (arena.getSpawnLocation() == null) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cPlease set a player spawn location for the arena."));
+            if (arena.getSpawnSpots().size() < MIN_SPAWN_SPOTS) {
+                player.sendMessage(ChatUtil.prefixedComponent("&cPlease set at least &e" + MIN_SPAWN_SPOTS + " &cspawn spots."));
+                return;
+            }
+
+            if (arena.getEmeraldSpots().size() < MIN_EMERALD_SPOTS) {
+                player.sendMessage(ChatUtil.prefixedComponent("&cPlease set at least &e" + MIN_EMERALD_SPOTS + " &cemerald spawn spot."));
                 return;
             }
 
@@ -170,6 +203,28 @@ public class SetupWizardManager implements Listener {
     public void onDrop(PlayerDropItemEvent event) {
         Player player = event.getPlayer();
         if (inWizard(player)) event.setCancelled(true);
+    }
+
+    private int remainingSpawnSpots(TemporaryArena arena) {
+        return Math.max(0, MIN_SPAWN_SPOTS - arena.getSpawnSpots().size());
+    }
+
+    private boolean containsLocation(List<Location> locations, Location location) {
+        if (locations == null || location == null) {
+            return false;
+        }
+        for (Location existing : locations) {
+            if (existing == null || existing.getWorld() == null || location.getWorld() == null) {
+                continue;
+            }
+            if (existing.getWorld().equals(location.getWorld())
+                    && existing.getBlockX() == location.getBlockX()
+                    && existing.getBlockY() == location.getBlockY()
+                    && existing.getBlockZ() == location.getBlockZ()) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

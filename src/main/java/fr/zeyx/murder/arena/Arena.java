@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +24,8 @@ public class Arena {
     private String name;
     private String displayName;
     private Location spawnLocation;
+    private List<Location> spawnSpots;
+    private List<Location> emeraldSpots;
     private List<UUID> activePlayers;
     private ArenaState arenaState;
 
@@ -32,10 +35,20 @@ public class Arena {
     public final String VIEW_STATS_ITEM = ChatUtil.color("&c&lView Stats&r&7 \u2022 Right Click");
     public final String LEAVE_ITEM = ChatUtil.color("&e&lLeave&r&7 \u2022 Right Click");
 
-    public Arena(String name, String displayName, Location spawnLocation, List<UUID> activePlayers, ArenaState arenaState) {
+    public Arena(
+            String name,
+            String displayName,
+            Location spawnLocation,
+            List<Location> spawnSpots,
+            List<Location> emeraldSpots,
+            List<UUID> activePlayers,
+            ArenaState arenaState
+    ) {
         this.name = name;
         this.displayName = displayName;
         this.spawnLocation = spawnLocation;
+        this.spawnSpots = spawnSpots == null ? new ArrayList<>() : spawnSpots;
+        this.emeraldSpots = emeraldSpots == null ? new ArrayList<>() : emeraldSpots;
         this.activePlayers = activePlayers;
         this.arenaState = arenaState;
     }
@@ -50,6 +63,14 @@ public class Arena {
 
     public Location getSpawnLocation() {
         return spawnLocation;
+    }
+
+    public List<Location> getSpawnSpots() {
+        return spawnSpots;
+    }
+
+    public List<Location> getEmeraldSpots() {
+        return emeraldSpots;
     }
 
     public List<UUID> getActivePlayers() {

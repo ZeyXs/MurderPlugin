@@ -16,6 +16,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
@@ -46,6 +50,46 @@ public class SecretIdentityManager implements Listener {
             return;
         }
         applyIdentity(player, username);
+    }
+
+    public boolean applyUniqueIdentities(List<Player> players) {
+        if (players == null || players.isEmpty()) {
+            return true;
+        }
+        List<String> configured = configurationManager.getSecretIdentityNames();
+        List<String> validNames = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (String name : configured) {
+            if (isValidUsername(name)) {
+                String trimmed = name.trim();
+                String key = trimmed.toLowerCase();
+                if (seen.add(key)) {
+                    validNames.add(trimmed);
+                }
+            } else if (name != null && !name.trim().isEmpty()) {
+                MurderPlugin.getInstance().getLogger()
+                        .warning("Secret identity '" + name + "' is not a valid Minecraft username.");
+            }
+        }
+        if (validNames.size() < players.size()) {
+            MurderPlugin.getInstance().getLogger()
+                    .warning("Not enough secret identities configured. Need " + players.size()
+                            + " but found " + validNames.size() + ".");
+            for (Player player : players) {
+                if (player != null && player.isOnline()) {
+                    player.sendMessage(ChatUtil.prefixedComponent("&cNot enough secret identities configured."));
+                }
+            }
+            return false;
+        }
+        Collections.shuffle(validNames);
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            if (player != null) {
+                applyIdentity(player, validNames.get(i));
+            }
+        }
+        return true;
     }
 
     public void resetIdentity(Player player) {

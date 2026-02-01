@@ -79,9 +79,18 @@ public class ConfigurationManager {
                 continue;
             }
             ConfigurationSection section = arenasConfiguration.getConfigurationSection(arenaName);
-            Arena arena = new Arena(arenaName,
+            Location spawnLocation = ConfigUtil.locationFrom(section.getConfigurationSection("spawnLocation"));
+            List<Location> spawnSpots = ConfigUtil.locationsFrom(section.getConfigurationSection("spawnSpots"));
+            List<Location> emeraldSpots = ConfigUtil.locationsFrom(section.getConfigurationSection("emeraldSpawns"));
+            if (spawnSpots.isEmpty() && spawnLocation != null) {
+                spawnSpots.add(spawnLocation);
+            }
+            Arena arena = new Arena(
+                    arenaName,
                     section.getString("displayName"),
-                    ConfigUtil.locationFrom(section.getConfigurationSection("spawnLocation")),
+                    spawnLocation,
+                    spawnSpots,
+                    emeraldSpots,
                     new ArrayList<>(),
                     new InitArenaState()
             );
@@ -156,7 +165,11 @@ public class ConfigurationManager {
         }
         ConfigurationSection arenaSection = arenasConfiguration.createSection(arena.getName());
         arenaSection.set("displayName", arena.getDisplayName());
-        ConfigUtil.writeLocation(arena.getSpawnLocation(), arenaSection.createSection("spawnLocation"));
+        if (arena.getSpawnLocation() != null) {
+            ConfigUtil.writeLocation(arena.getSpawnLocation(), arenaSection.createSection("spawnLocation"));
+        }
+        ConfigUtil.writeLocations(arena.getSpawnSpots(), arenaSection, "spawnSpots");
+        ConfigUtil.writeLocations(arena.getEmeraldSpots(), arenaSection, "emeraldSpawns");
         saveArenaConfig();
     }
 

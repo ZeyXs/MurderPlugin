@@ -4,12 +4,15 @@ import fr.zeyx.murder.arena.state.InitArenaState;
 import org.bukkit.Location;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class TemporaryArena {
 
     private String name;
     private String displayName;
     private Location spawnLocation;
+    private List<Location> spawnSpots = new ArrayList<>();
+    private List<Location> emeraldSpots = new ArrayList<>();
 
     public TemporaryArena() {
 
@@ -19,6 +22,12 @@ public class TemporaryArena {
         this.name = arena.getName();
         this.displayName = arena.getDisplayName();
         this.spawnLocation = arena.getSpawnLocation();
+        if (arena.getSpawnSpots() != null) {
+            this.spawnSpots.addAll(arena.getSpawnSpots());
+        }
+        if (arena.getEmeraldSpots() != null) {
+            this.emeraldSpots.addAll(arena.getEmeraldSpots());
+        }
 
     }
 
@@ -29,7 +38,7 @@ public class TemporaryArena {
     }
 
     public Arena toArena() {
-        return new Arena(name, displayName, spawnLocation, new ArrayList<>(), new InitArenaState());
+        return new Arena(name, displayName, spawnLocation, new ArrayList<>(spawnSpots), new ArrayList<>(emeraldSpots), new ArrayList<>(), new InitArenaState());
     }
 
     public String getName() {
@@ -51,6 +60,14 @@ public class TemporaryArena {
 
     public void setSpawnLocation(Location spawnLocation) {
         this.spawnLocation = spawnLocation;
+    }
+
+    public List<Location> getSpawnSpots() {
+        return spawnSpots;
+    }
+
+    public List<Location> getEmeraldSpots() {
+        return emeraldSpots;
     }
 
 }
