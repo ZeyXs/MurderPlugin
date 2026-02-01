@@ -4,6 +4,7 @@ import fr.zeyx.murder.arena.state.ActiveArenaState;
 import fr.zeyx.murder.arena.state.InitArenaState;
 import fr.zeyx.murder.arena.state.StartingArenaState;
 import fr.zeyx.murder.arena.state.WaitingArenaState;
+import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.BookUtil;
 import fr.zeyx.murder.util.ChatUtil;
@@ -139,7 +140,10 @@ public class Arena {
             player.sendMessage(ChatUtil.prefixedComponent("&7You left the game."));
         } else {
             player.removePotionEffect(PotionEffectType.SPEED);
-            activeArenaState.alivePlayers.remove(player.getUniqueId());
+            GameSession session = activeArenaState.getSession();
+            if (session != null) {
+                session.removeAlive(player.getUniqueId());
+            }
         }
 
         if (activePlayers.size() <= 3 && arenaState instanceof StartingArenaState startingArenaState) {

@@ -2,8 +2,8 @@ package fr.zeyx.murder.arena.task;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
-import fr.zeyx.murder.arena.state.ActiveArenaState;
 import fr.zeyx.murder.arena.state.WaitingArenaState;
+import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.manager.GameManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -15,28 +15,28 @@ public class ActiveArenaTask extends BukkitRunnable {
 
     private final GameManager gameManager;
     private final Arena arena;
-    private final ActiveArenaState activeArenaState;
+    private final GameSession session;
 
-    public ActiveArenaTask(GameManager gameManager, Arena arena, ActiveArenaState activeArenaState) {
+    public ActiveArenaTask(GameManager gameManager, Arena arena, GameSession session) {
         this.gameManager = gameManager;
         this.arena = arena;
-        this.activeArenaState = activeArenaState;
+        this.session = session;
     }
 
     @Override
     public void run() {
-        if (activeArenaState.alivePlayers.size() <= 1) {
-            if (activeArenaState.alivePlayers.isEmpty()) {
+        if (session.getAlivePlayers().size() <= 1) {
+            if (session.getAlivePlayers().isEmpty()) {
                 arena.setArenaSate(new WaitingArenaState(gameManager, arena));
             } else {
                 cancel();
 
                 // TODO: Win system
-                activeArenaState.endGame();
+                session.endGame();
 
                 MurderPlugin.getInstance().getServer().getScheduler().runTaskLater(MurderPlugin.getInstance(), endGameTask -> {
                     arena.setArenaSate(new WaitingArenaState(gameManager, arena));
-                    for (UUID playerId : activeArenaState.alivePlayers) {
+                    for (UUID playerId : session.getAlivePlayers()) {
                         Player player = Bukkit.getPlayer(playerId);
                         if (player != null) arena.removePlayer(player, gameManager);
                     }
