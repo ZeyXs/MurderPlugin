@@ -2,6 +2,9 @@ package fr.zeyx.murder.arena.state;
 
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.ArenaState;
+import fr.zeyx.murder.gui.EquipmentMenu;
+import fr.zeyx.murder.gui.ProfileMenu;
+import fr.zeyx.murder.gui.ShopMenu;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.entity.Player;
@@ -43,8 +46,22 @@ public class WaitingArenaState extends ArenaState {
         ItemStack item = event.getItem();
         String itemName = item.getItemMeta().getDisplayName();
         if (itemName == null) return;
-        if (ChatUtil.stripColor(itemName).equalsIgnoreCase(ChatUtil.stripColor(arena.LEAVE_ITEM))) {
+        String strippedName = ChatUtil.stripColor(itemName);
+        if (strippedName == null) return;
+        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.LEAVE_ITEM))) {
             arena.removePlayer(player, gameManager);
+            return;
+        }
+        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.SELECT_EQUIPMENT_ITEM))) {
+            new EquipmentMenu().open(player);
+            return;
+        }
+        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.VIEW_STATS_ITEM))) {
+            new ProfileMenu().open(player);
+            return;
+        }
+        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.STORE_ITEM))) {
+            new ShopMenu().open(player);
         }
     }
 

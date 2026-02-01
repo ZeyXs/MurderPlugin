@@ -2,6 +2,7 @@ package fr.zeyx.murder.util;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 
@@ -17,6 +18,10 @@ public class ChatUtil {
     public static Component component(String legacyText) {
         String input = legacyText == null ? "" : legacyText;
         return LEGACY_SERIALIZER.deserialize(color(input));
+    }
+
+    public static Component itemComponent(String legacyText) {
+        return component(legacyText).decoration(TextDecoration.ITALIC, false);
     }
 
     public static Component prefixedComponent(String message) {

@@ -17,7 +17,7 @@ public class ArenaStartingTask extends BukkitRunnable {
     private final GameManager gameManager;
     private final Arena lobbyArena;
     private final MapVoteSession voteSession;
-    private final boolean forceStart;
+    private final int minPlayersToKeep;
     private int timeUntilStart;
 
     public ArenaStartingTask(GameManager gameManager, Arena lobbyArena, MapVoteSession voteSession, int timeUntilStart, boolean forceStart) {
@@ -25,13 +25,14 @@ public class ArenaStartingTask extends BukkitRunnable {
         this.lobbyArena = lobbyArena;
         this.voteSession = voteSession;
         this.timeUntilStart = timeUntilStart;
-        this.forceStart = forceStart;
+        this.minPlayersToKeep = resolveMinPlayersToKeep(forceStart);
     }
 
     @Override
     public void run() {
-        if (!forceStart && lobbyArena.getActivePlayers().size() < 4) {
+        if (lobbyArena.getActivePlayers().size() < minPlayersToKeep) {
             cancel();
+            lobbyArena.setArenaSate(new WaitingArenaState(gameManager, lobbyArena));
             return;
         }
 
@@ -51,6 +52,17 @@ public class ArenaStartingTask extends BukkitRunnable {
             player.sendActionBar(ChatUtil.component("&f&lJoining Map in &r&7» &b&l" + timeUntilStart + " seconds"));
         }
         timeUntilStart--;
+    }
+
+    private int resolveMinPlayersToKeep(boolean forceStart) {
+        if (!forceStart) {
+            return 4;
+        }
+        int initial = lobbyArena.getActivePlayers().size();
+        if (initial >= 4) {
+            return 4;
+        }
+        return Math.max(1, initial);
     }
 
     private void lockVoteAndAnnounce() {
