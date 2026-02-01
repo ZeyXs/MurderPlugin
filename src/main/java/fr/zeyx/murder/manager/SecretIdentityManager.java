@@ -81,8 +81,7 @@ public class SecretIdentityManager implements Listener {
         PlayerProfile lookup = Bukkit.createProfile(username);
         lookup.update().whenComplete((resolved, throwable) -> {
             if (throwable != null) {
-                MurderPlugin.getInstance().getLogger().warning(
-                        "Failed to resolve secret identity '" + username + "': " + throwable.getMessage());
+                MurderPlugin.getInstance().getLogger().warning("Failed to resolve secret identity '" + username + "': " + throwable.getMessage());
                 Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
                     if (!player.isOnline()) {
                         return;

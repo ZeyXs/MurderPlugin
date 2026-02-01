@@ -111,10 +111,6 @@ public class Arena {
             gameManager.getArenaManager().getVoteSession().removeVote(player.getUniqueId());
         }
         gameManager.getConfigurationManager().loadRollback(player);
-        Location lobbyLocation = gameManager.getConfigurationManager().getLobbyLocation();
-        if (lobbyLocation != null) {
-            player.teleport(lobbyLocation);
-        }
         gameManager.getScoreboardManager().clear(player);
         updateLobbyBoards(gameManager);
 

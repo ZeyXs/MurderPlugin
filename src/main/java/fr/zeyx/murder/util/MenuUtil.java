@@ -33,7 +33,9 @@ public final class MenuUtil {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.displayName(name);
+            if (name != null) {
+                meta.displayName(name);
+            }
             if (lore != null) {
                 meta.lore(lore);
             }
