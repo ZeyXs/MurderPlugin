@@ -23,16 +23,20 @@ public class ConfigurationManager {
 
     private final YamlConfiguration arenasConfiguration;
     private final YamlConfiguration rollbackConfiguration;
+    private final YamlConfiguration booksConfiguration;
     private final File arenasFile;
     private final File rollbackFile;
+    private final File booksFile;
     private Location lobbyLocation;
     private final Map<UUID, PlayerSnapshot> snapshotCache = new HashMap<>();
 
     public ConfigurationManager() {
         this.arenasFile = new File(MurderPlugin.getInstance().getDataFolder(), "arenas.yml");
         this.rollbackFile = new File(MurderPlugin.getInstance().getDataFolder(), "inventories.yml");
+        this.booksFile = new File(MurderPlugin.getInstance().getDataFolder(), "books.yml");
         this.arenasConfiguration = new YamlConfiguration();
         this.rollbackConfiguration = new YamlConfiguration();
+        this.booksConfiguration = new YamlConfiguration();
 
         try {
             this.arenasConfiguration.load(this.arenasFile);
@@ -40,6 +44,15 @@ public class ConfigurationManager {
         } catch (IOException | InvalidConfigurationException exception) {
             saveArenaConfig();
             saveRollbackConfig();
+        }
+
+        if (!booksFile.exists()) {
+            MurderPlugin.getInstance().saveResource("books.yml", false);
+        }
+        try {
+            this.booksConfiguration.load(this.booksFile);
+        } catch (IOException | InvalidConfigurationException exception) {
+            saveBooksConfig();
         }
 
         this.lobbyLocation = ConfigUtil.locationFrom(arenasConfiguration.getConfigurationSection("lobby"));
@@ -205,6 +218,21 @@ public class ConfigurationManager {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void saveBooksConfig() {
+        try {
+            booksConfiguration.save(booksFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public ConfigurationSection getBookSection(String key) {
+        if (key == null || key.isEmpty()) {
+            return null;
+        }
+        return booksConfiguration.getConfigurationSection(key);
     }
 
     private void applySnapshot(

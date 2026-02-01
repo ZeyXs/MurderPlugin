@@ -5,6 +5,7 @@ import fr.zeyx.murder.arena.state.InitArenaState;
 import fr.zeyx.murder.arena.state.StartingArenaState;
 import fr.zeyx.murder.arena.state.WaitingArenaState;
 import fr.zeyx.murder.manager.GameManager;
+import fr.zeyx.murder.util.BookUtil;
 import fr.zeyx.murder.util.ChatUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import net.md_5.bungee.api.ChatColor;
@@ -77,7 +78,7 @@ public class Arena {
         player.setExperienceLevelAndProgress(0);
         player.getInventory().clear();
         player.getInventory().setHeldItemSlot(0);
-        player.getInventory().setItem(0, new ItemBuilder(Material.WRITTEN_BOOK).setName(HOW_TO_PLAY_ITEM).toItemStack());
+        player.getInventory().setItem(0, BookUtil.buildBook(gameManager.getConfigurationManager(), "lobby-how-to", ChatUtil.itemComponent(HOW_TO_PLAY_ITEM)));
         player.getInventory().setItem(3, new ItemBuilder(Material.ENDER_CHEST).setName(SELECT_EQUIPMENT_ITEM).toItemStack());
         player.getInventory().setItem(4, new ItemBuilder(Material.EMERALD).setName(STORE_ITEM).toItemStack());
         ItemStack statsHead = new ItemStack(Material.PLAYER_HEAD);

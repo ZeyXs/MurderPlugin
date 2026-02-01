@@ -52,6 +52,10 @@ public class WaitingArenaState extends ArenaState {
             arena.removePlayer(player, gameManager);
             return;
         }
+        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.HOW_TO_PLAY_ITEM))) {
+            player.openBook(item);
+            return;
+        }
         if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.SELECT_EQUIPMENT_ITEM))) {
             new EquipmentMenu().open(player);
             return;

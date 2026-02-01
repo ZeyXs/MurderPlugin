@@ -1,0 +1,70 @@
+lobby-how-to:
+  title: ""
+  author: "&7Murderer"
+  pages:
+    - |2-
+    
+    
+    
+    
+               &4&lMurder
+    - |2-
+            &2&lContents
+    
+      &0> &8How to play
+      &0>> &7&oBystander
+      &0>> &7&oMurderer
+      &0> &8Game Features
+      &0> &8Rules
+    - |2-
+            &8&lHow to Play
+    
+      &r&0Everyone is given a secret identity so that you do not know who is who. When the game starts, one person becomes the murderer and everyone else a bystander. You only know your own role.
+    - |2-
+            &8&lHow to Play
+    
+      &r&0Win by killing all players of the opposite role to yours. Names do not show through walls and when someone dies their identity is not removed from tab list.
+    - |2-
+            &8&lHow to Play
+            &9&lBystander
+    
+      &r&0As a bystander you need to find and kill the murderer, without being kill first. To do this you will need a gun. One bystander starts with a gun, the others must collect 5 emeralds to create one themselves.
+    - |2-
+            &8&lHow to Play
+            &4&lMurderer
+    
+      &r&0As a murderer you need to kill everyone else in the game without being killed yourself. You are the only person in the game who can sprint and see footprint tails (or not) behind people.
+    - |2-
+         &8&lGame Features
+    
+      &0&rEvery player is given a new identity which is also displayed in the tab list.
+    
+      The murderer is able to switch identities with someone they have killed.
+    
+      The murderer is able to see footprints
+    - |2-
+         &8&lGame Features
+    
+      &0&rbehind people.
+    
+      If a bystander shoots another bystander they drop their gun and are blinded.
+    
+      Points are received for what you accomplish in a game. These can be spent
+    - |2-
+         &8&lGame Features
+    
+      &0&ron cosmetic items or upgrades.
+    
+      Shooting innocent players gives you negative karma points. If you karma is too low then you won't become the murder. You gain karma simply by playing the game.
+    - |2-
+                &8&lRules
+    
+      &0&rPlay fair. If you are talking to someone else in-game (e.g. Skype), don't be tempted to tell your friend who the murderer is when you die - that makes the murderer's already hard task even harder.
+    - |2-
+                &8&lRules
+    
+      &0&rPlay nice. Don't hide in a corner to make the murderer run around everywhere, try and win the game by getting a gun and killingthe murderer yourself. You get lots of points for killing the murderer.
+    - |2-
+                &8&lRules
+    
+      &0&rPlay safe. Don't abuse an exploit you have fouund, it will most likely have some undersired side-effects and is also against the server rules. Report it on the forums so that it can be fixed.
