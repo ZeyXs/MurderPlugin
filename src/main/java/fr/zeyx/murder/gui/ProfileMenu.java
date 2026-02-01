@@ -63,12 +63,12 @@ public class ProfileMenu {
     }
 
     private void buildItems() {
-        gui.setItem(10, MenuUtil.buildItem(Material.COAL_BLOCK, ChatUtil.itemComponent("&9&oRank"), RANK_LORE, false));
+        gui.setItem(10, MenuUtil.buildItem(Material.COAL_BLOCK, ChatUtil.itemComponent("&9&oRank", true), RANK_LORE, false));
         gui.setItem(11, MenuUtil.buildItem(Material.NETHER_STAR, ChatUtil.itemComponent("&c???"), null, false));
-        gui.setItem(13, MenuUtil.buildItem(Material.GOLDEN_SWORD, ChatUtil.itemComponent("&c&oMurderer Stats"), MURDERER_LORE, true));
-        gui.setItem(14, MenuUtil.buildItem(Material.IRON_HOE, ChatUtil.itemComponent("&9&oBystander Stats"), BYSTANDER_LORE, true));
-        gui.setItem(15, MenuUtil.buildItem(Material.DIAMOND, ChatUtil.itemComponent("&3&oGeneral Stats"), GENERAL_LORE, false));
-        gui.setItem(16, MenuUtil.buildItem(Material.EMERALD, ChatUtil.itemComponent("&9Your Name in Murder"), NAME_LORE, false));
+        gui.setItem(13, MenuUtil.buildItem(Material.GOLDEN_SWORD, ChatUtil.itemComponent("&c&oMurderer Stats", true), MURDERER_LORE, true));
+        gui.setItem(14, MenuUtil.buildItem(Material.IRON_HOE, ChatUtil.itemComponent("&9&oBystander Stats", true), BYSTANDER_LORE, true));
+        gui.setItem(15, MenuUtil.buildItem(Material.DIAMOND, ChatUtil.itemComponent("&3&oGeneral Stats", true), GENERAL_LORE, false));
+        gui.setItem(16, MenuUtil.buildItem(Material.EMERALD, ChatUtil.itemComponent("&9Your Name in Murder", true), NAME_LORE, false));
         gui.setItem(31, MenuUtil.buildItem(Material.WOODEN_SWORD, ChatUtil.itemComponent("&c???"), null, true));
     }
 }

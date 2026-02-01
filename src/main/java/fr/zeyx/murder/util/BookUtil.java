@@ -3,6 +3,7 @@ package fr.zeyx.murder.util;
 import fr.zeyx.murder.manager.ConfigurationManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 
@@ -30,7 +31,7 @@ public final class BookUtil {
             return book;
         }
 
-        org.bukkit.configuration.ConfigurationSection section = configurationManager.getBookSection(key);
+        ConfigurationSection section = configurationManager.getBookSection(key);
         if (section == null) {
             book.setItemMeta(meta);
             return book;

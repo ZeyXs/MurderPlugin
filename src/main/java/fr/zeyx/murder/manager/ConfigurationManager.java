@@ -24,9 +24,11 @@ public class ConfigurationManager {
     private final YamlConfiguration arenasConfiguration;
     private final YamlConfiguration rollbackConfiguration;
     private final YamlConfiguration booksConfiguration;
+    private final YamlConfiguration secretIdentitiesConfiguration;
     private final File arenasFile;
     private final File rollbackFile;
     private final File booksFile;
+    private final File secretIdentitiesFile;
     private Location lobbyLocation;
     private final Map<UUID, PlayerSnapshot> snapshotCache = new HashMap<>();
 
@@ -34,9 +36,11 @@ public class ConfigurationManager {
         this.arenasFile = new File(MurderPlugin.getInstance().getDataFolder(), "arenas.yml");
         this.rollbackFile = new File(MurderPlugin.getInstance().getDataFolder(), "inventories.yml");
         this.booksFile = new File(MurderPlugin.getInstance().getDataFolder(), "books.yml");
+        this.secretIdentitiesFile = new File(MurderPlugin.getInstance().getDataFolder(), "secret-identities.yml");
         this.arenasConfiguration = new YamlConfiguration();
         this.rollbackConfiguration = new YamlConfiguration();
         this.booksConfiguration = new YamlConfiguration();
+        this.secretIdentitiesConfiguration = new YamlConfiguration();
 
         try {
             this.arenasConfiguration.load(this.arenasFile);
@@ -53,6 +57,15 @@ public class ConfigurationManager {
             this.booksConfiguration.load(this.booksFile);
         } catch (IOException | InvalidConfigurationException exception) {
             saveBooksConfig();
+        }
+
+        if (!secretIdentitiesFile.exists()) {
+            MurderPlugin.getInstance().saveResource("secret-identities.yml", false);
+        }
+        try {
+            this.secretIdentitiesConfiguration.load(this.secretIdentitiesFile);
+        } catch (IOException | InvalidConfigurationException exception) {
+            saveSecretIdentitiesConfig();
         }
 
         this.lobbyLocation = ConfigUtil.locationFrom(arenasConfiguration.getConfigurationSection("lobby"));
@@ -233,6 +246,32 @@ public class ConfigurationManager {
             return null;
         }
         return booksConfiguration.getConfigurationSection(key);
+    }
+
+    public List<String> getSecretIdentityNames() {
+        List<String> names = secretIdentitiesConfiguration.getStringList("usernames");
+        if (names == null || names.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> cleaned = new ArrayList<>();
+        for (String name : names) {
+            if (name == null) {
+                continue;
+            }
+            String trimmed = name.trim();
+            if (!trimmed.isEmpty()) {
+                cleaned.add(trimmed);
+            }
+        }
+        return cleaned;
+    }
+
+    public void saveSecretIdentitiesConfig() {
+        try {
+            secretIdentitiesConfiguration.save(secretIdentitiesFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void applySnapshot(

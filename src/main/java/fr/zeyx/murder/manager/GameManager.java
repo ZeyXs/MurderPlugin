@@ -9,12 +9,14 @@ public class GameManager {
     private final ArenaManager arenaManager;
     private final SetupWizardManager setupWizardManager;
     private final ScoreboardManager scoreboardManager;
+    private final SecretIdentityManager secretIdentityManager;
 
     public GameManager() {
         this.configurationManager = new ConfigurationManager();
         this.arenaManager = new ArenaManager(configurationManager.loadArenas());
         this.setupWizardManager = new SetupWizardManager(this);
         this.scoreboardManager = new ScoreboardManager();
+        this.secretIdentityManager = new SecretIdentityManager(configurationManager);
         registerListeners();
     }
 
@@ -34,10 +36,15 @@ public class GameManager {
         return scoreboardManager;
     }
 
+    public SecretIdentityManager getSecretIdentityManager() {
+        return secretIdentityManager;
+    }
+
     private void registerListeners() {
         PluginManager pluginManager = MurderPlugin.getInstance().getServer().getPluginManager();
         pluginManager.registerEvents(setupWizardManager, MurderPlugin.getInstance());
         pluginManager.registerEvents(scoreboardManager, MurderPlugin.getInstance());
+        pluginManager.registerEvents(secretIdentityManager, MurderPlugin.getInstance());
     }
 
 }

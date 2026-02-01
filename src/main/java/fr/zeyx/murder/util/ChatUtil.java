@@ -21,7 +21,11 @@ public class ChatUtil {
     }
 
     public static Component itemComponent(String legacyText) {
-        return component(legacyText).decoration(TextDecoration.ITALIC, false);
+        return itemComponent(legacyText, false);
+    }
+
+    public static Component itemComponent(String legacyText, boolean italic) {
+        return component(legacyText).decoration(TextDecoration.ITALIC, italic);
     }
 
     public static Component prefixedComponent(String message) {

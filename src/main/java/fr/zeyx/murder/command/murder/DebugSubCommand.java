@@ -28,12 +28,26 @@ public class DebugSubCommand implements PlayerSubCommand {
         }
 
         if (args.length == 0) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start> [arena]"));
+            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start|identity|identityreset> [arena]"));
+            return;
+        }
+
+        if (args[0].equalsIgnoreCase("identity")) {
+            if (args.length >= 2 && args[1].equalsIgnoreCase("reset")) {
+                gameManager.getSecretIdentityManager().resetIdentity(player);
+                return;
+            }
+            gameManager.getSecretIdentityManager().applyRandomIdentity(player);
+            return;
+        }
+
+        if (args[0].equalsIgnoreCase("identityreset") || args[0].equalsIgnoreCase("resetidentity")) {
+            gameManager.getSecretIdentityManager().resetIdentity(player);
             return;
         }
 
         if (!args[0].equalsIgnoreCase("start")) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start> [arena]"));
+            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start|identity|identityreset> [arena]"));
             return;
         }
 
