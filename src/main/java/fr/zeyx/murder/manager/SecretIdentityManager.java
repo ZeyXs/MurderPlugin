@@ -1,8 +1,10 @@
 package fr.zeyx.murder.manager;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.MojangUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -107,6 +109,7 @@ public class SecretIdentityManager implements Listener {
         if (original != null) {
             player.playerListName(original);
         }
+        refreshPlayerAppearance(player);
         player.sendMessage(ChatUtil.prefixedComponent("&aYour identity has been reset."));
     }
 
@@ -124,56 +127,35 @@ public class SecretIdentityManager implements Listener {
 
         PlayerProfile lookup = Bukkit.createProfile(username);
         lookup.update().whenComplete((resolved, throwable) -> {
-            if (throwable != null) {
-                MurderPlugin.getInstance().getLogger().warning("Failed to resolve secret identity '" + username + "': " + throwable.getMessage());
-                Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
-                    if (!player.isOnline()) {
-                        return;
-                    }
-                    player.sendMessage(ChatUtil.prefixedComponent("&cFailed to apply that identity."));
-                });
-                return;
-            }
-
             if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
                 return;
             }
 
-            PlayerProfile resolvedProfile = resolved == null ? lookup : resolved;
-            if (!resolvedProfile.isComplete() || !resolvedProfile.hasTextures()) {
-                MurderPlugin.getInstance().getLogger()
-                        .warning("Secret identity '" + username + "' is not a valid Minecraft account.");
-                Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
-                    if (!player.isOnline()) {
-                        return;
-                    }
-                    player.sendMessage(ChatUtil.prefixedComponent("&cThat identity could not be resolved."));
-                });
-                return;
-            }
-
-            Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
-                if (!player.isOnline()) {
+            if (throwable == null) {
+                PlayerProfile resolvedProfile = resolved == null ? lookup : resolved;
+                if (resolvedProfile.isComplete() && resolvedProfile.hasTextures()) {
+                    applyResolvedIdentity(player, username, requestVersion, resolvedProfile.getTextures());
                     return;
                 }
+            }
+
+            MojangUtil.resolveTextures(username).whenComplete((textures, error) -> {
                 if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
                     return;
                 }
-                PlayerProfile targetProfile = Bukkit.createProfile(player.getUniqueId(), player.getName());
-                PlayerTextures targetTextures = targetProfile.getTextures();
-                PlayerTextures sourceTextures = resolvedProfile.getTextures();
-                if (sourceTextures.getSkin() != null) {
-                    targetTextures.setSkin(sourceTextures.getSkin(), sourceTextures.getSkinModel());
+                if (error != null) {
+                    MurderPlugin.getInstance().getLogger()
+                            .warning("Failed to resolve secret identity '" + username + "' via Mojang API: " + error.getMessage());
+                    notifyIdentityFailure(player, requestVersion, "&cFailed to apply that identity.");
+                    return;
                 }
-                if (sourceTextures.getCape() != null) {
-                    targetTextures.setCape(sourceTextures.getCape());
+                if (textures == null || !textures.hasValue()) {
+                    MurderPlugin.getInstance().getLogger()
+                            .warning("Secret identity '" + username + "' is not a valid Minecraft account.");
+                    notifyIdentityFailure(player, requestVersion, "&cThat identity could not be resolved.");
+                    return;
                 }
-                targetProfile.setTextures(targetTextures);
-
-                player.setPlayerProfile(targetProfile);
-                player.playerListName(ChatUtil.component(username));
-                currentIdentities.put(player.getUniqueId(), username.toLowerCase());
-                player.sendMessage(ChatUtil.prefixedComponent("&7Your identity is now &a" + username));
+                applyResolvedIdentity(player, username, requestVersion, textures);
             });
         });
     }
@@ -239,4 +221,72 @@ public class SecretIdentityManager implements Listener {
         requestVersions.remove(event.getPlayer().getUniqueId());
         currentIdentities.remove(event.getPlayer().getUniqueId());
     }
+
+    private void applyResolvedIdentity(Player player, String username, int requestVersion, PlayerTextures sourceTextures) {
+        Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
+                return;
+            }
+            PlayerProfile targetProfile = player.getPlayerProfile().clone();
+            PlayerTextures targetTextures = targetProfile.getTextures();
+            if (sourceTextures.getSkin() != null) {
+                targetTextures.setSkin(sourceTextures.getSkin(), sourceTextures.getSkinModel());
+            }
+            if (sourceTextures.getCape() != null) {
+                targetTextures.setCape(sourceTextures.getCape());
+            }
+            targetProfile.setTextures(targetTextures);
+
+            player.setPlayerProfile(targetProfile);
+            player.playerListName(ChatUtil.component(username));
+            currentIdentities.put(player.getUniqueId(), username.toLowerCase());
+            refreshPlayerAppearance(player);
+            player.sendMessage(ChatUtil.prefixedComponent("&7Your identity is now &a" + username));
+        });
+    }
+
+    private void applyResolvedIdentity(Player player, String username, int requestVersion, MojangUtil.MojangTextures textures) {
+        Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
+                return;
+            }
+            PlayerProfile targetProfile = player.getPlayerProfile().clone();
+            targetProfile.setProperty(new ProfileProperty("textures", textures.getValue(), textures.getSignature()));
+
+            player.setPlayerProfile(targetProfile);
+            player.playerListName(ChatUtil.component(username));
+            currentIdentities.put(player.getUniqueId(), username.toLowerCase());
+            refreshPlayerAppearance(player);
+            player.sendMessage(ChatUtil.prefixedComponent("&7Your identity is now &a" + username));
+        });
+    }
+
+    private void refreshPlayerAppearance(Player player) {
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            if (viewer.getUniqueId().equals(player.getUniqueId())) {
+                continue;
+            }
+            viewer.hidePlayer(MurderPlugin.getInstance(), player);
+            viewer.showPlayer(MurderPlugin.getInstance(), player);
+        }
+    }
+
+    private void notifyIdentityFailure(Player player, int requestVersion, String message) {
+        Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
+                return;
+            }
+            player.sendMessage(ChatUtil.prefixedComponent(message));
+        });
+    }
+
 }
