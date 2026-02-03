@@ -22,6 +22,13 @@ public final class MurderPlugin extends JavaPlugin {
         initCommand();
     }
 
+    @Override
+    public void onDisable() {
+        if (gameManager != null) {
+            gameManager.shutdown();
+        }
+    }
+
     private void initCommand() {
         CommandRegistrar registrar = new CommandRegistrar(this);
         registerAllCommands(registrar);

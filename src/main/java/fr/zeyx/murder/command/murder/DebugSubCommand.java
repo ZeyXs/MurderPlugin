@@ -28,7 +28,7 @@ public class DebugSubCommand implements PlayerSubCommand {
         }
 
         if (args.length == 0) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start|identity|identityreset> [arena]"));
+            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start|identity|identityreset|corpse|corpseclear> [arena]"));
             return;
         }
 
@@ -46,8 +46,25 @@ public class DebugSubCommand implements PlayerSubCommand {
             return;
         }
 
+        if (args[0].equalsIgnoreCase("corpse")) {
+            if (args.length >= 2 && args[1].equalsIgnoreCase("clear")) {
+                int cleared = gameManager.getCorpseManager().clearCorpses();
+                player.sendMessage(ChatUtil.prefixedComponent("&eDebug: cleared &6" + cleared + "&e corpses."));
+                return;
+            }
+            gameManager.getCorpseManager().spawnCorpse(player);
+            player.sendMessage(ChatUtil.prefixedComponent("&eDebug: corpse spawned."));
+            return;
+        }
+
+        if (args[0].equalsIgnoreCase("corpseclear") || args[0].equalsIgnoreCase("clearcorpse")) {
+            int cleared = gameManager.getCorpseManager().clearCorpses();
+            player.sendMessage(ChatUtil.prefixedComponent("&eDebug: cleared &6" + cleared + "&e corpses."));
+            return;
+        }
+
         if (!args[0].equalsIgnoreCase("start")) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start|identity|identityreset> [arena]"));
+            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start|identity|identityreset|corpse|corpseclear> [arena]"));
             return;
         }
 

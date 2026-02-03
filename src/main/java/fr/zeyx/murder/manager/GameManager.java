@@ -10,6 +10,7 @@ public class GameManager {
     private final SetupWizardManager setupWizardManager;
     private final ScoreboardManager scoreboardManager;
     private final SecretIdentityManager secretIdentityManager;
+    private final CorpseManager corpseManager;
 
     public GameManager() {
         this.configurationManager = new ConfigurationManager();
@@ -17,6 +18,7 @@ public class GameManager {
         this.setupWizardManager = new SetupWizardManager(this);
         this.scoreboardManager = new ScoreboardManager();
         this.secretIdentityManager = new SecretIdentityManager(configurationManager);
+        this.corpseManager = new CorpseManager(MurderPlugin.getInstance());
         registerListeners();
     }
 
@@ -38,6 +40,14 @@ public class GameManager {
 
     public SecretIdentityManager getSecretIdentityManager() {
         return secretIdentityManager;
+    }
+
+    public CorpseManager getCorpseManager() {
+        return corpseManager;
+    }
+
+    public void shutdown() {
+        corpseManager.clearCorpses();
     }
 
     private void registerListeners() {

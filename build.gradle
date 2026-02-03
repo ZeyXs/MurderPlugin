@@ -24,11 +24,28 @@ repositories {
         name = "mvn-wesjd-net"
         url = "https://mvn.wesjd.net/"
     }
+    maven {
+        name = "citizens-repo"
+        url = "https://maven.citizensnpcs.co/repo"
+    }
+    maven {
+        name = "codemc-releases"
+        url = "https://repo.codemc.io/repository/maven-releases/"
+    }
+    maven {
+        name = "codemc-snapshots"
+        url = "https://repo.codemc.io/repository/maven-snapshots/"
+    }
+    maven {
+        name = "glaremasters-public"
+        url = "https://repo.glaremasters.me/repository/public/"
+    }
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("com.google.code.gson:gson:2.11.0")
+    compileOnly("net.citizensnpcs:citizensapi:2.0.41-SNAPSHOT")
     implementation("net.wesjd:anvilgui:1.10.11-SNAPSHOT")
     implementation("fr.mrmicky:fastboard:2.1.5")
     implementation("dev.triumphteam:triumph-gui:3.1.13")
