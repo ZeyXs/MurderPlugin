@@ -20,7 +20,11 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 public class SetupWizardManager implements Listener {
 
@@ -30,11 +34,11 @@ public class SetupWizardManager implements Listener {
     private static final int MIN_SPAWN_SPOTS = 15;
     private static final int MIN_EMERALD_SPOTS = 1;
 
-    private final String ADD_SPAWN_SPOT_ITEM_NAME = ChatUtil.color("&aAdd Spawn Spot &7(Right-click)");
-    private final String ADD_EMERALD_SPOT_ITEM_NAME = ChatUtil.color("&2Add Emerald Spawn &7(Right-click)");
-    private final String SET_ARENA_DISPLAY_NAME_ITEM_NAME = ChatUtil.color("&3Set Arena Name &7(Right-click)");
-    private final String SAVE_ARENA_ITEM_NAME = ChatUtil.color("&aSave Arena &7(Right-click)");
-    private final String CANCEL_ITEM_NAME = ChatUtil.color("&cCancel &7(Right-click)");
+    private final Component ADD_SPAWN_SPOT_ITEM_NAME = ChatUtil.itemComponent("&aAdd Spawn Spot &7(Right-click)");
+    private final Component ADD_EMERALD_SPOT_ITEM_NAME = ChatUtil.itemComponent("&2Add Emerald Spawn &7(Right-click)");
+    private final Component SET_ARENA_DISPLAY_NAME_ITEM_NAME = ChatUtil.itemComponent("&3Set Arena Name &7(Right-click)");
+    private final Component SAVE_ARENA_ITEM_NAME = ChatUtil.itemComponent("&aSave Arena &7(Right-click)");
+    private final Component CANCEL_ITEM_NAME = ChatUtil.itemComponent("&cCancel &7(Right-click)");
 
     public SetupWizardManager(GameManager gameManager) {
         this.gameManager = gameManager;
@@ -58,11 +62,11 @@ public class SetupWizardManager implements Listener {
 
         player.setGameMode(GameMode.CREATIVE);
         player.getInventory().clear();
-        player.sendMessage(ChatUtil.prefixedComponent("&aArena setup mode activated."));
-        player.sendMessage(ChatUtil.prefixedComponent("&eRemaining spawn spots to place: &b" + remainingSpawnSpots(temporaryArena)));
+        player.sendMessage(ChatUtil.prefixed("&aArena setup mode activated."));
+        player.sendMessage(ChatUtil.prefixed("&eRemaining spawn spots to place: &b" + remainingSpawnSpots(temporaryArena)));
         player.playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 50, 1);
 
-        Map<Material, ImmutablePair<String, Integer>> wizardItems = Map.of(
+        Map<Material, ImmutablePair<Component, Integer>> wizardItems = Map.of(
                 Material.NAME_TAG, new ImmutablePair<>(SET_ARENA_DISPLAY_NAME_ITEM_NAME, 0),
                 Material.ENDER_PEARL, new ImmutablePair<>(ADD_SPAWN_SPOT_ITEM_NAME, 1),
                 Material.EMERALD, new ImmutablePair<>(ADD_EMERALD_SPOT_ITEM_NAME, 2),
@@ -102,17 +106,17 @@ public class SetupWizardManager implements Listener {
         if(!event.getItem().hasItemMeta()) return;
 
         event.setCancelled(true);
-        String itemName = event.getItem().getItemMeta().getDisplayName();
+        Component itemName = event.getItem().getItemMeta().displayName();
         TemporaryArena arena = inWizard.get(player.getUniqueId());
 
-        if(itemName.equalsIgnoreCase(ADD_SPAWN_SPOT_ITEM_NAME)) {
+        if (Objects.equals(itemName, ADD_SPAWN_SPOT_ITEM_NAME)) {
             Location location = player.getLocation();
             if (containsLocation(arena.getSpawnSpots(), location)) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cThat spawn spot is already set."));
+                player.sendMessage(ChatUtil.prefixed("&cThat spawn spot is already set."));
                 return;
             }
             if (arena.getSpawnSpots().size() >= MIN_SPAWN_SPOTS) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cYou already placed the maximum of &e" + MIN_SPAWN_SPOTS + " &cspawn spots."));
+                player.sendMessage(ChatUtil.prefixed("&cYou already placed the maximum of &e" + MIN_SPAWN_SPOTS + " &cspawn spots."));
                 return;
             }
             arena.getSpawnSpots().add(location);
@@ -120,14 +124,14 @@ public class SetupWizardManager implements Listener {
                 arena.setSpawnLocation(location);
             }
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
-            player.sendMessage(ChatUtil.prefixedComponent("&aSpawn spot added! &d" + ChatUtil.displayLocation(location)));
-            player.sendMessage(ChatUtil.prefixedComponent("&eRemaining spawn spots to place: &b" + remainingSpawnSpots(arena)));
+            player.sendMessage(ChatUtil.prefixed("&aSpawn spot added! &d" + ChatUtil.displayLocation(location)));
+            player.sendMessage(ChatUtil.prefixed("&eRemaining spawn spots to place: &b" + remainingSpawnSpots(arena)));
 
-        } else if (itemName.equalsIgnoreCase(SET_ARENA_DISPLAY_NAME_ITEM_NAME)) {
+        } else if (Objects.equals(itemName, SET_ARENA_DISPLAY_NAME_ITEM_NAME)) {
             player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 50, 1);
             new AnvilGUI.Builder()
                     .title("◆ Arena name")
-                    .itemLeft(new ItemBuilder(Material.PAPER).setName("Choose a name").toItemStack())
+                    .itemLeft(new ItemBuilder(Material.PAPER).setName(ChatUtil.itemComponent("Choose a name")).toItemStack())
                     .plugin(MurderPlugin.getInstance())
                     .onClick((anvilPlayer, state) -> {
                         if (gameManager.getArenaManager().getArenas().stream().anyMatch(allArenas -> allArenas.getDisplayName().equalsIgnoreCase(state.getText()))) {
@@ -135,34 +139,34 @@ public class SetupWizardManager implements Listener {
                         }
                         arena.setDisplayName(state.getText());
                         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
-                        player.sendMessage(ChatUtil.prefixedComponent("&aSet arena display name to &3" + state.getText() + "&7!"));
+                        player.sendMessage(ChatUtil.prefixed("&aSet arena display name to &3" + state.getText() + "&7!"));
                         return List.of(AnvilGUI.ResponseAction.close());
                     }).open(player);
 
-        } else if (itemName.equalsIgnoreCase(ADD_EMERALD_SPOT_ITEM_NAME)) {
+        } else if (Objects.equals(itemName, ADD_EMERALD_SPOT_ITEM_NAME)) {
             Location location = player.getLocation();
             if (containsLocation(arena.getEmeraldSpots(), location)) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cThat emerald spawn is already set."));
+                player.sendMessage(ChatUtil.prefixed("&cThat emerald spawn is already set."));
                 return;
             }
             arena.getEmeraldSpots().add(location);
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
-            player.sendMessage(ChatUtil.prefixedComponent("&aEmerald spawn added! &d" + ChatUtil.displayLocation(location)));
+            player.sendMessage(ChatUtil.prefixed("&aEmerald spawn added! &d" + ChatUtil.displayLocation(location)));
 
-        } else if (itemName.equalsIgnoreCase(SAVE_ARENA_ITEM_NAME)) {
+        } else if (Objects.equals(itemName, SAVE_ARENA_ITEM_NAME)) {
 
             if (arena.getName() == null || arena.getName().isEmpty()) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cPlease set a display name for the arena."));
+                player.sendMessage(ChatUtil.prefixed("&cPlease set a display name for the arena."));
                 return;
             }
 
             if (arena.getSpawnSpots().size() < MIN_SPAWN_SPOTS) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cPlease set at least &e" + MIN_SPAWN_SPOTS + " &cspawn spots."));
+                player.sendMessage(ChatUtil.prefixed("&cPlease set at least &e" + MIN_SPAWN_SPOTS + " &cspawn spots."));
                 return;
             }
 
             if (arena.getEmeraldSpots().size() < MIN_EMERALD_SPOTS) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cPlease set at least &e" + MIN_EMERALD_SPOTS + " &cemerald spawn spot."));
+                player.sendMessage(ChatUtil.prefixed("&cPlease set at least &e" + MIN_EMERALD_SPOTS + " &cemerald spawn spot."));
                 return;
             }
 
@@ -171,12 +175,12 @@ public class SetupWizardManager implements Listener {
             gameManager.getConfigurationManager().saveArena(saved);
             endWizard(player);
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 50, 1);
-            player.sendMessage(ChatUtil.prefixedComponent("&aSuccessfully created &a" + saved.getDisplayName() + "&7!"));
+            player.sendMessage(ChatUtil.prefixed("&aSuccessfully created &a" + saved.getDisplayName() + "&7!"));
 
-        } else if (itemName.equalsIgnoreCase(CANCEL_ITEM_NAME)) {
+        } else if (Objects.equals(itemName, CANCEL_ITEM_NAME)) {
             endWizard(player);
             player.playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 50, 2);
-            player.sendMessage(ChatUtil.prefixedComponent("&cArena creation cancelled."));
+            player.sendMessage(ChatUtil.prefixed("&cArena creation cancelled."));
         }
 
     }

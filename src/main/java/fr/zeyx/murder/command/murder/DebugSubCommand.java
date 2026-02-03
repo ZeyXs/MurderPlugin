@@ -23,12 +23,12 @@ public class DebugSubCommand implements PlayerSubCommand {
     @Override
     public void execute(Player player, String[] args) {
         if (!player.hasPermission("murder.admin")) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cYou don't have permission to use this command."));
+            player.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
             return;
         }
 
         if (args.length == 0) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start|identity|identityreset|corpse|corpseclear> [arena]"));
+            player.sendMessage(ChatUtil.prefixed("&cUsage: /murder debug <start|identity|identityreset|corpse|corpseclear> [arena]"));
             return;
         }
 
@@ -49,22 +49,22 @@ public class DebugSubCommand implements PlayerSubCommand {
         if (args[0].equalsIgnoreCase("corpse")) {
             if (args.length >= 2 && args[1].equalsIgnoreCase("clear")) {
                 int cleared = gameManager.getCorpseManager().clearCorpses();
-                player.sendMessage(ChatUtil.prefixedComponent("&eDebug: cleared &6" + cleared + "&e corpses."));
+                player.sendMessage(ChatUtil.prefixed("&eDebug: cleared &6" + cleared + "&e corpses."));
                 return;
             }
             gameManager.getCorpseManager().spawnCorpse(player);
-            player.sendMessage(ChatUtil.prefixedComponent("&eDebug: corpse spawned."));
+            player.sendMessage(ChatUtil.prefixed("&eDebug: corpse spawned."));
             return;
         }
 
         if (args[0].equalsIgnoreCase("corpseclear") || args[0].equalsIgnoreCase("clearcorpse")) {
             int cleared = gameManager.getCorpseManager().clearCorpses();
-            player.sendMessage(ChatUtil.prefixedComponent("&eDebug: cleared &6" + cleared + "&e corpses."));
+            player.sendMessage(ChatUtil.prefixed("&eDebug: cleared &6" + cleared + "&e corpses."));
             return;
         }
 
         if (!args[0].equalsIgnoreCase("start")) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder debug <start|identity|identityreset|corpse|corpseclear> [arena]"));
+            player.sendMessage(ChatUtil.prefixed("&cUsage: /murder debug <start|identity|identityreset|corpse|corpseclear> [arena]"));
             return;
         }
 
@@ -75,19 +75,19 @@ public class DebugSubCommand implements PlayerSubCommand {
 
         Arena arena = targetArena.get();
         if (arena.getArenaState() instanceof ActiveArenaState) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cThe game is already running."));
+            player.sendMessage(ChatUtil.prefixed("&cThe game is already running."));
             return;
         }
         if (arena.getArenaState() instanceof StartingArenaState) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cThe game is already starting."));
+            player.sendMessage(ChatUtil.prefixed("&cThe game is already starting."));
             return;
         }
         if (arena.getArenaState() instanceof InitArenaState) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cThis arena isn't ready yet."));
+            player.sendMessage(ChatUtil.prefixed("&cThis arena isn't ready yet."));
             return;
         }
         if (!(arena.getArenaState() instanceof WaitingArenaState)) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cThis arena can't be started right now."));
+            player.sendMessage(ChatUtil.prefixed("&cThis arena can't be started right now."));
             return;
         }
 
@@ -105,14 +105,14 @@ public class DebugSubCommand implements PlayerSubCommand {
             String arenaName = joinArgs(args, 1);
             Optional<Arena> arena = gameManager.getArenaManager().findArena(arenaName);
             if (arena.isEmpty()) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cNo arena by that name exists."));
+                player.sendMessage(ChatUtil.prefixed("&cNo arena by that name exists."));
             }
             return arena;
         }
 
         Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
         if (currentArena.isEmpty()) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cYou are not in an arena."));
+            player.sendMessage(ChatUtil.prefixed("&cYou are not in an arena."));
         }
         return currentArena;
     }

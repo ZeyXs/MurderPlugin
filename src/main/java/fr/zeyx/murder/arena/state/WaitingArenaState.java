@@ -6,7 +6,7 @@ import fr.zeyx.murder.gui.EquipmentMenu;
 import fr.zeyx.murder.gui.ProfileMenu;
 import fr.zeyx.murder.gui.ShopMenu;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
@@ -44,27 +44,25 @@ public class WaitingArenaState extends ArenaState {
 
         event.setCancelled(true);
         ItemStack item = event.getItem();
-        String itemName = item.getItemMeta().getDisplayName();
+        Component itemName = item.getItemMeta().displayName();
         if (itemName == null) return;
-        String strippedName = ChatUtil.stripColor(itemName);
-        if (strippedName == null) return;
-        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.LEAVE_ITEM))) {
+        if (itemName.equals(arena.LEAVE_ITEM)) {
             arena.removePlayer(player, gameManager);
             return;
         }
-        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.HOW_TO_PLAY_ITEM))) {
+        if (itemName.equals(arena.HOW_TO_PLAY_ITEM)) {
             player.openBook(item);
             return;
         }
-        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.SELECT_EQUIPMENT_ITEM))) {
+        if (itemName.equals(arena.SELECT_EQUIPMENT_ITEM)) {
             new EquipmentMenu().open(player);
             return;
         }
-        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.VIEW_STATS_ITEM))) {
+        if (itemName.equals(arena.VIEW_STATS_ITEM)) {
             new ProfileMenu().open(player);
             return;
         }
-        if (strippedName.equalsIgnoreCase(ChatUtil.stripColor(arena.STORE_ITEM))) {
+        if (itemName.equals(arena.STORE_ITEM)) {
             new ShopMenu().open(player);
         }
     }

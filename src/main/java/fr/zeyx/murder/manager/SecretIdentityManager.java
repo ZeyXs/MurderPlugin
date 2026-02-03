@@ -43,12 +43,12 @@ public class SecretIdentityManager implements Listener {
     public void applyRandomIdentity(Player player) {
         List<String> names = configurationManager.getSecretIdentityNames();
         if (names.isEmpty()) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cNo secret identities configured."));
+            player.sendMessage(ChatUtil.prefixed("&cNo secret identities configured."));
             return;
         }
         String username = pickRandomIdentity(player.getUniqueId(), names);
         if (username == null) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cNo alternative identity available."));
+            player.sendMessage(ChatUtil.prefixed("&cNo alternative identity available."));
             return;
         }
         applyIdentity(player, username);
@@ -79,7 +79,7 @@ public class SecretIdentityManager implements Listener {
                             + " but found " + validNames.size() + ".");
             for (Player player : players) {
                 if (player != null && player.isOnline()) {
-                    player.sendMessage(ChatUtil.prefixedComponent("&cNot enough secret identities configured."));
+                    player.sendMessage(ChatUtil.prefixed("&cNot enough secret identities configured."));
                 }
             }
             return false;
@@ -100,7 +100,7 @@ public class SecretIdentityManager implements Listener {
         PlayerProfile originalProfile = originalProfiles.remove(player.getUniqueId());
         currentIdentities.remove(player.getUniqueId());
         if (original == null && originalProfile == null) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cYou don't have a secret identity to reset."));
+            player.sendMessage(ChatUtil.prefixed("&cYou don't have a secret identity to reset."));
             return;
         }
         if (originalProfile != null) {
@@ -110,14 +110,14 @@ public class SecretIdentityManager implements Listener {
             player.playerListName(original);
         }
         refreshPlayerAppearance(player);
-        player.sendMessage(ChatUtil.prefixedComponent("&aYour identity has been reset."));
+        player.sendMessage(ChatUtil.prefixed("&aYour identity has been reset."));
     }
 
     private void applyIdentity(Player player, String username) {
         if (!isValidUsername(username)) {
             MurderPlugin.getInstance().getLogger()
                     .warning("Secret identity '" + username + "' is not a valid Minecraft username.");
-            player.sendMessage(ChatUtil.prefixedComponent("&cThat identity is not a valid Minecraft username."));
+            player.sendMessage(ChatUtil.prefixed("&cThat identity is not a valid Minecraft username."));
             return;
         }
 
@@ -244,7 +244,7 @@ public class SecretIdentityManager implements Listener {
             player.playerListName(ChatUtil.component(username));
             currentIdentities.put(player.getUniqueId(), username.toLowerCase());
             refreshPlayerAppearance(player);
-            player.sendMessage(ChatUtil.prefixedComponent("&7Your identity is now &a" + username));
+            player.sendMessage(ChatUtil.prefixed("&7Your identity is now &a" + username));
         });
     }
 
@@ -263,7 +263,7 @@ public class SecretIdentityManager implements Listener {
             player.playerListName(ChatUtil.component(username));
             currentIdentities.put(player.getUniqueId(), username.toLowerCase());
             refreshPlayerAppearance(player);
-            player.sendMessage(ChatUtil.prefixedComponent("&7Your identity is now &a" + username));
+            player.sendMessage(ChatUtil.prefixed("&7Your identity is now &a" + username));
         });
     }
 
@@ -285,7 +285,7 @@ public class SecretIdentityManager implements Listener {
             if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
                 return;
             }
-            player.sendMessage(ChatUtil.prefixedComponent(message));
+            player.sendMessage(ChatUtil.prefixed(message));
         });
     }
 

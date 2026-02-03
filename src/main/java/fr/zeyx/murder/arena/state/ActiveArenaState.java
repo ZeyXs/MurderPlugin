@@ -6,7 +6,7 @@ import fr.zeyx.murder.arena.ArenaState;
 import fr.zeyx.murder.arena.task.ActiveArenaTask;
 import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -83,9 +83,9 @@ public class ActiveArenaState extends ArenaState {
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         if(!event.getItem().hasItemMeta()) return;
 
-        String itemName = event.getItem().getItemMeta().getDisplayName();
+        Component itemName = event.getItem().getItemMeta().displayName();
         if (itemName == null) return;
-        if (ChatUtil.stripColor(itemName).equalsIgnoreCase(ChatUtil.stripColor(arena.LEAVE_ITEM))) {
+        if (itemName.equals(arena.LEAVE_ITEM)) {
             event.setCancelled(true);
             arena.removePlayer(player, gameManager);
         }

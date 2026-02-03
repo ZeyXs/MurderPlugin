@@ -56,7 +56,7 @@ public class GameSession {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) continue;
             player.setGameMode(GameMode.SPECTATOR);
-            player.sendMessage(ChatUtil.prefixedComponent("&7End of the game!"));
+            player.sendMessage(ChatUtil.prefixed("&7End of the game!"));
         }
     }
 
@@ -133,9 +133,9 @@ public class GameSession {
             return;
         }
         switch (role) {
-            case MURDERER -> player.sendMessage(ChatUtil.prefixedComponent("&cYou are the Murderer."));
-            case DETECTIVE -> player.sendMessage(ChatUtil.prefixedComponent("&bYou are the Detective."));
-            case BYSTANDER -> player.sendMessage(ChatUtil.prefixedComponent("&aYou are a Bystander."));
+            case MURDERER -> player.sendMessage(ChatUtil.prefixed("&cYou are the Murderer."));
+            case DETECTIVE -> player.sendMessage(ChatUtil.prefixed("&bYou are the Detective."));
+            case BYSTANDER -> player.sendMessage(ChatUtil.prefixed("&aYou are a Bystander."));
         }
     }
 }

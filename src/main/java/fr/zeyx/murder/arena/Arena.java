@@ -9,7 +9,7 @@ import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.BookUtil;
 import fr.zeyx.murder.util.ChatUtil;
 import fr.zeyx.murder.util.ItemBuilder;
-import net.md_5.bungee.api.ChatColor;
+import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -30,11 +30,11 @@ public class Arena {
     private List<UUID> activePlayers;
     private ArenaState arenaState;
 
-    public final String HOW_TO_PLAY_ITEM = ChatUtil.color("&6&lHow to Play&r&7 \u2022 Right Click");
-    public final String SELECT_EQUIPMENT_ITEM = ChatUtil.color("&2&lSelect Equipment&r&7 \u2022 Right Click");
-    public final String STORE_ITEM = ChatUtil.color("&b&lStore&r&7 \u2022 Right Click");
-    public final String VIEW_STATS_ITEM = ChatUtil.color("&c&lView Stats&r&7 \u2022 Right Click");
-    public final String LEAVE_ITEM = ChatUtil.color("&e&lLeave&r&7 \u2022 Right Click");
+    public final Component HOW_TO_PLAY_ITEM = ChatUtil.itemComponent("&6&lHow to Play&r&7 \u2022 Right Click");
+    public final Component SELECT_EQUIPMENT_ITEM = ChatUtil.itemComponent("&2&lSelect Equipment&r&7 \u2022 Right Click");
+    public final Component STORE_ITEM = ChatUtil.itemComponent("&b&lStore&r&7 \u2022 Right Click");
+    public final Component VIEW_STATS_ITEM = ChatUtil.itemComponent("&c&lView Stats&r&7 \u2022 Right Click");
+    public final Component LEAVE_ITEM = ChatUtil.itemComponent("&e&lLeave&r&7 \u2022 Right Click");
 
     public Arena(
             String name,
@@ -100,14 +100,14 @@ public class Arena {
         player.setExperienceLevelAndProgress(0);
         player.getInventory().clear();
         player.getInventory().setHeldItemSlot(0);
-        player.getInventory().setItem(0, BookUtil.buildBook(gameManager.getConfigurationManager(), "lobby-how-to", ChatUtil.itemComponent(HOW_TO_PLAY_ITEM)));
+        player.getInventory().setItem(0, BookUtil.buildBook(gameManager.getConfigurationManager(), "lobby-how-to", HOW_TO_PLAY_ITEM));
         player.getInventory().setItem(3, new ItemBuilder(Material.ENDER_CHEST).setName(SELECT_EQUIPMENT_ITEM).toItemStack());
         player.getInventory().setItem(4, new ItemBuilder(Material.EMERALD).setName(STORE_ITEM).toItemStack());
         ItemStack statsHead = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta skullMeta = (SkullMeta) statsHead.getItemMeta();
         if (skullMeta != null) {
             skullMeta.setOwningPlayer(player);
-            skullMeta.setDisplayName(VIEW_STATS_ITEM);
+            skullMeta.displayName(VIEW_STATS_ITEM);
             statsHead.setItemMeta(skullMeta);
         }
         player.getInventory().setItem(5, statsHead);
@@ -137,7 +137,7 @@ public class Arena {
         updateLobbyBoards(gameManager);
 
         if (!(arenaState instanceof ActiveArenaState activeArenaState)) {
-            player.sendMessage(ChatUtil.prefixedComponent("&7You left the game."));
+            player.sendMessage(ChatUtil.prefixed("&7You left the game."));
         } else {
             player.removePotionEffect(PotionEffectType.SPEED);
             GameSession session = activeArenaState.getSession();
@@ -164,7 +164,7 @@ public class Arena {
         for (UUID playerId : this.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null) {
-                player.sendMessage(ChatUtil.prefixedComponent(message));
+                player.sendMessage(ChatUtil.prefixed(message));
             }
         }
     }

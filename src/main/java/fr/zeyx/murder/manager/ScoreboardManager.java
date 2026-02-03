@@ -51,7 +51,7 @@ public class ScoreboardManager implements Listener {
     public void updateBoard(Player player, String title, List<String> lines) {
         FastBoard board = boards.computeIfAbsent(player.getUniqueId(), key -> new FastBoard(player));
         if (title != null) {
-            board.updateTitle(ChatUtil.color(title));
+            board.updateTitle(ChatUtil.legacy(title));
         }
         board.updateLines(colorize(lines));
     }
@@ -86,7 +86,7 @@ public class ScoreboardManager implements Listener {
             return List.of();
         }
         return lines.stream()
-                .map(line -> line == null ? "" : ChatUtil.color(line))
+                .map(line -> line == null ? "" : ChatUtil.legacy(line))
                 .collect(Collectors.toList());
     }
 }

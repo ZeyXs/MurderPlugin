@@ -11,6 +11,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import net.kyori.adventure.text.Component;
 
 /**
  * Easily create itemstacks, without messing your hands.
@@ -89,6 +90,13 @@ public class ItemBuilder {
     public ItemBuilder setName(String name) {
         ItemMeta im = itemStack.getItemMeta();
         im.setDisplayName(name);
+        itemStack.setItemMeta(im);
+        return this;
+    }
+
+    public ItemBuilder setName(Component name) {
+        ItemMeta im = itemStack.getItemMeta();
+        im.displayName(name);
         itemStack.setItemMeta(im);
         return this;
     }

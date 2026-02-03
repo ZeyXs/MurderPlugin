@@ -20,19 +20,19 @@ public class ArenaSubCommand implements PlayerSubCommand {
     public void execute(Player player, String[] args) {
 
         if (args.length == 0) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder arena <list|create|edit|remove>"));
+            player.sendMessage(ChatUtil.prefixed("&cUsage: /murder arena <list|create|edit|remove>"));
             return;
         }
 
         if (args[0].equalsIgnoreCase("list")) {
             if (gameManager.getArenaManager().getArenas().isEmpty()) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cNo arenas have been setup."));
+                player.sendMessage(ChatUtil.prefixed("&cNo arenas have been setup."));
                 return;
             }
 
-            player.sendMessage(ChatUtil.prefixedComponent("&7Arenas list:"));
+            player.sendMessage(ChatUtil.prefixed("&7Arenas list:"));
             for (Arena arena : gameManager.getArenaManager().getArenas()) {
-                player.sendMessage(ChatUtil.prefixedComponent("&7- &a" + arena.getName()));
+                player.sendMessage(ChatUtil.prefixed("&7- &a" + arena.getName()));
             }
 
             return;
@@ -41,7 +41,7 @@ public class ArenaSubCommand implements PlayerSubCommand {
         if (args[0].equalsIgnoreCase("create")) {
             // TODO: Better permission system for all subcommands.
             if (!player.hasPermission("murder.admin")) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cYou don't have permission to use this command."));
+                player.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
                 return;
             }
             gameManager.getSetupWizardManager().startWizard(player, null);
@@ -50,16 +50,16 @@ public class ArenaSubCommand implements PlayerSubCommand {
 
         if (args[0].equalsIgnoreCase("edit")) {
             if (!player.hasPermission("murder.admin")) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cYou don't have permission to use this command."));
+                player.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
                 return;
             }
 
             if (args.length <= 1) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder arena edit <name>"));
+                player.sendMessage(ChatUtil.prefixed("&cUsage: /murder arena edit <name>"));
                 return;
             }
 
-            player.sendMessage(ChatUtil.prefixedComponent("&cThis command is currently disabled."));
+            player.sendMessage(ChatUtil.prefixed("&cThis command is currently disabled."));
             return;
 
             /*
@@ -76,29 +76,29 @@ public class ArenaSubCommand implements PlayerSubCommand {
 
         if (args[0].equalsIgnoreCase("remove")) {
             if (!player.hasPermission("murder.admin")) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cYou don't have permission to use this command."));
+                player.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
                 return;
             }
 
             if (args.length == 1) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder arena remove <name>"));
+                player.sendMessage(ChatUtil.prefixed("&cUsage: /murder arena remove <name>"));
                 return;
             }
 
             Optional<Arena> optionalArena = gameManager.getArenaManager().findArena(args[1]);
             if (optionalArena.isEmpty()) {
-                player.sendMessage(ChatUtil.prefixedComponent("&cNo arena by that name exists."));
+                player.sendMessage(ChatUtil.prefixed("&cNo arena by that name exists."));
                 return;
             }
 
             Arena arena = optionalArena.get();
             gameManager.getArenaManager().removeArena(arena);
             gameManager.getConfigurationManager().removeArena(arena);
-            player.sendMessage(ChatUtil.prefixedComponent("&aArena successfully removed."));
+            player.sendMessage(ChatUtil.prefixed("&aArena successfully removed."));
             return;
         }
 
-        player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder arena <list|create|edit|remove>"));
+        player.sendMessage(ChatUtil.prefixed("&cUsage: /murder arena <list|create|edit|remove>"));
     }
 
     @Override

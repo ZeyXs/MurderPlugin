@@ -21,7 +21,7 @@ public class LeaveSubCommand implements PlayerSubCommand {
 
         Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
         if (currentArena.isEmpty()) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cYou are not in an arena."));
+            player.sendMessage(ChatUtil.prefixed("&cYou are not in an arena."));
             return;
         }
 

@@ -11,33 +11,31 @@ public class ChatUtil {
     public static final String CHAT_PREFIX = "&c&lMURDER &7\u2022&r ";
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
 
-    public static String color(String string) {
-        return ChatColor.translateAlternateColorCodes('&', string);
+    public static Component color(String legacyText) {
+        return component(legacyText);
     }
 
     public static Component component(String legacyText) {
-        String input = legacyText == null ? "" : legacyText;
-        return LEGACY_SERIALIZER.deserialize(color(input));
+        String input = translate(legacyText);
+        return LEGACY_SERIALIZER.deserialize(input);
     }
 
     public static Component itemComponent(String legacyText) {
-        return itemComponent(legacyText, false);
+        return itemComponent(component(legacyText), false);
     }
 
     public static Component itemComponent(String legacyText, boolean italic) {
-        return component(legacyText).decoration(TextDecoration.ITALIC, italic);
+        return itemComponent(component(legacyText), italic);
     }
 
-    public static Component prefixedComponent(String message) {
+    public static Component itemComponent(Component component, boolean italic) {
+        Component base = component == null ? Component.empty() : component;
+        return base.decoration(TextDecoration.ITALIC, italic);
+    }
+
+    public static Component prefixed(String message) {
         String body = message == null ? "" : message;
         return component(CHAT_PREFIX + body);
-    }
-
-    public static String prefixed(String message) {
-        if (message == null || message.isEmpty()) {
-            return color(CHAT_PREFIX);
-        }
-        return color(CHAT_PREFIX + message);
     }
 
     public static String stripColor(String string) {
@@ -46,6 +44,22 @@ public class ChatUtil {
 
     public static String displayLocation(Location location) {
         return "(" + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ() + ")";
+    }
+
+    public static String legacy(String legacyText) {
+        return translate(legacyText);
+    }
+
+    public static String legacy(Component component) {
+        if (component == null) {
+            return "";
+        }
+        return LEGACY_SERIALIZER.serialize(component);
+    }
+
+    private static String translate(String legacyText) {
+        String input = legacyText == null ? "" : legacyText;
+        return ChatColor.translateAlternateColorCodes('&', input);
     }
 
 }

@@ -21,29 +21,29 @@ public class JoinSubCommand implements PlayerSubCommand {
     @Override
     public void execute(Player player, String[] args) {
         if (gameManager.getArenaManager().getArenas().isEmpty()) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cThere are no arenas to join."));
+            player.sendMessage(ChatUtil.prefixed("&cThere are no arenas to join."));
             return;
         }
 
         if (args.length > 0) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cUsage: /murder join"));
+            player.sendMessage(ChatUtil.prefixed("&cUsage: /murder join"));
             return;
         }
 
         Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
         if (currentArena.isPresent()) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cYou are already in an arena."));
+            player.sendMessage(ChatUtil.prefixed("&cYou are already in an arena."));
             return;
         }
 
         if (gameManager.getConfigurationManager().getLobbyLocation() == null) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cLobby location is not set."));
+            player.sendMessage(ChatUtil.prefixed("&cLobby location is not set."));
             return;
         }
 
         Arena arena = gameManager.getArenaManager().getArenas().getFirst();
         if (arena.getArenaState() instanceof ActiveArenaState) {
-            player.sendMessage(ChatUtil.prefixedComponent("&cThe game is already running."));
+            player.sendMessage(ChatUtil.prefixed("&cThe game is already running."));
             return;
         }
 
