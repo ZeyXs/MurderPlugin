@@ -1,6 +1,6 @@
-package fr.zeyx.murder.manager.task;
+package fr.zeyx.murder.arena.task;
 
-import fr.zeyx.murder.manager.SetupWizardManager;
+import fr.zeyx.murder.arena.setup.SetupWizardManager;
 import fr.zeyx.murder.util.ChatUtil;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;

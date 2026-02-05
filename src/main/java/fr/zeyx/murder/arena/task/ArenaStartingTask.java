@@ -4,7 +4,7 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.state.ActiveArenaState;
 import fr.zeyx.murder.arena.state.WaitingArenaState;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.manager.MapVoteSession;
+import fr.zeyx.murder.arena.vote.MapVoteSession;
 import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;

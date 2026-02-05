@@ -4,7 +4,7 @@ import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.task.ArenaStartingTask;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.manager.MapVoteSession;
+import fr.zeyx.murder.arena.vote.MapVoteSession;
 
 public class StartingArenaState extends WaitingArenaState {
 

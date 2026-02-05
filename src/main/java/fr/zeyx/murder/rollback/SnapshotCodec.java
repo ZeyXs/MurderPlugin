@@ -1,4 +1,4 @@
-package fr.zeyx.murder.util;
+package fr.zeyx.murder.rollback;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;

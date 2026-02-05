@@ -1,9 +1,10 @@
-package fr.zeyx.murder.manager;
+package fr.zeyx.murder.arena.setup;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.TemporaryArena;
-import fr.zeyx.murder.manager.task.SetupWizardTask;
+import fr.zeyx.murder.manager.GameManager;
+import fr.zeyx.murder.arena.task.SetupWizardTask;
 import fr.zeyx.murder.util.ChatUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import net.wesjd.anvilgui.AnvilGUI;

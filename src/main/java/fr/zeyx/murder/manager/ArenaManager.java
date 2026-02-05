@@ -1,6 +1,7 @@
 package fr.zeyx.murder.manager;
 
 import fr.zeyx.murder.arena.Arena;
+import fr.zeyx.murder.arena.vote.MapVoteSession;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;

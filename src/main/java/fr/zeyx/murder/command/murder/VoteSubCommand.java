@@ -3,7 +3,7 @@ package fr.zeyx.murder.command.murder;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.manager.MapVoteSession;
+import fr.zeyx.murder.arena.vote.MapVoteSession;
 import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.entity.Player;
 

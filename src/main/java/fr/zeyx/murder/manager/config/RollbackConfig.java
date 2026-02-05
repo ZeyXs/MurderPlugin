@@ -1,8 +1,8 @@
 package fr.zeyx.murder.manager.config;
 
 import fr.zeyx.murder.MurderPlugin;
-import fr.zeyx.murder.manager.PlayerSnapshot;
-import fr.zeyx.murder.util.SnapshotCodec;
+import fr.zeyx.murder.rollback.PlayerSnapshot;
+import fr.zeyx.murder.rollback.SnapshotCodec;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;

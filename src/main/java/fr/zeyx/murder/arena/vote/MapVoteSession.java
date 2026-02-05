@@ -1,4 +1,4 @@
-package fr.zeyx.murder.manager;
+package fr.zeyx.murder.arena.vote;
 
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.util.ChatUtil;

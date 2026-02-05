@@ -2,6 +2,7 @@ package fr.zeyx.murder.manager;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.ArenaChatListener;
+import fr.zeyx.murder.arena.setup.SetupWizardManager;
 import org.bukkit.plugin.PluginManager;
 
 public class GameManager {
