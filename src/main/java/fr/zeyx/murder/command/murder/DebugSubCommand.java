@@ -63,7 +63,7 @@ public class DebugSubCommand implements PlayerSubCommand {
             return;
         }
 
-        if (!args[0].equalsIgnoreCase("start")) {
+        if (!args[0].equalsIgnoreCase("force-start")) {
             player.sendMessage(ChatUtil.prefixed("&cUsage: /murder debug <start|identity|identityreset|corpse|corpseclear> [arena]"));
             return;
         }

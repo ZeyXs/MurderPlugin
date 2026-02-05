@@ -29,7 +29,8 @@ public class StartingArenaState extends WaitingArenaState {
         super.onEnable();
 
         MapVoteSession voteSession = gameManager.getArenaManager().getOrCreateVoteSession();
-        arenaStartingTask = new ArenaStartingTask(gameManager, arena, voteSession, 20, forceStart);
+        int timeUntilStart = forceStart ? 5 : 20;
+        arenaStartingTask = new ArenaStartingTask(gameManager, arena, voteSession, timeUntilStart, forceStart);
         arenaStartingTask.runTaskTimer(MurderPlugin.getInstance(), 0, 20);
     }
 

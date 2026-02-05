@@ -44,7 +44,7 @@ public class CorpseManager {
         if (source == null || location == null) {
             return;
         }
-        Location spawnLocation = location.clone();
+        Location spawnLocation = location.clone().add(-1.0, 0.0, 0.0);
         spawnLocation.setYaw(180.0f);
         spawnLocation.setPitch(0.0f);
 
