@@ -48,6 +48,21 @@ public class ScoreboardManager implements Listener {
         ));
     }
 
+    public void showGameBoard(Player player, String roleLine, String identityName) {
+        String safeRoleLine = roleLine == null ? "" : roleLine;
+        String safeIdentityName = identityName == null ? "" : identityName;
+        updateBoard(player, "&c&lMURDER", Arrays.asList(
+                "",
+                "&a&lRole",
+                safeRoleLine,
+                " ",
+                "&6&lIdentity",
+                "&f" + safeIdentityName,
+                "  ",
+                "&bplay.server.net"
+        ));
+    }
+
     public void updateBoard(Player player, String title, List<String> lines) {
         FastBoard board = boards.computeIfAbsent(player.getUniqueId(), key -> new FastBoard(player));
         if (title != null) {

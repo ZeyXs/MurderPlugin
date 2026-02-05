@@ -58,7 +58,16 @@ public class GameSession {
             }
             player.getInventory().clear();
             player.getInventory().setItem(8, QuickChatMenu.buildChatBook());
-            gameManager.getScoreboardManager().showGameBoard(player);
+            String roleLine = switch (roles.get(playerId)) {
+                case MURDERER -> "&4Murderer";
+                case DETECTIVE -> "&1Detective";
+                case BYSTANDER -> "&bBystander";
+            };
+            String identityName = gameManager.getSecretIdentityManager().getCurrentIdentityName(player.getUniqueId());
+            if (identityName == null || identityName.isBlank()) {
+                identityName = "Unknown";
+            }
+            gameManager.getScoreboardManager().showGameBoard(player, roleLine, identityName);
             hideNametag(player);
             player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 5, 0, false, false, false));
             showRoleTitle(player, roles.get(playerId));

@@ -115,9 +115,11 @@ public class SecretIdentityManager implements Listener {
             return false;
         }
 
-        int requestVersion = bumpRequestVersion(player.getUniqueId());
+        UUID playerId = player.getUniqueId();
+        int requestVersion = bumpRequestVersion(playerId);
         originalListNames.putIfAbsent(player.getUniqueId(), player.playerListName() == null ? Component.text(player.getName()) : player.playerListName());
         originalProfiles.putIfAbsent(player.getUniqueId(), player.getPlayerProfile().clone());
+        currentIdentities.put(playerId, username);
 
         PlayerProfile lookup = Bukkit.createProfile(username);
         lookup.update().whenComplete((resolved, throwable) -> {
@@ -140,11 +142,13 @@ public class SecretIdentityManager implements Listener {
                 if (error != null) {
                     MurderPlugin.getInstance().getLogger()
                             .warning("Failed to resolve secret identity '" + username + "' via Mojang API: " + error.getMessage());
+                    currentIdentities.remove(player.getUniqueId());
                     return;
                 }
                 if (textures == null || !textures.hasValue()) {
                     MurderPlugin.getInstance().getLogger()
                             .warning("Secret identity '" + username + "' is not a valid Minecraft account.");
+                    currentIdentities.remove(player.getUniqueId());
                     return;
                 }
                 applyResolvedIdentity(player, username, requestVersion, textures);
