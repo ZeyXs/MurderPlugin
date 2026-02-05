@@ -1,14 +1,21 @@
 package fr.zeyx.murder.game;
 
+import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
+import net.kyori.adventure.title.Title;
+
+import java.time.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,9 +57,11 @@ public class GameSession {
                 player.teleport(spawn);
             }
             player.getInventory().clear();
+            player.getInventory().setItem(8, QuickChatMenu.buildChatBook());
             gameManager.getScoreboardManager().showGameBoard(player);
             hideNametag(player);
-            notifyRole(player, roles.get(playerId));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 5, 0, false, false, false));
+            showRoleTitle(player, roles.get(playerId));
         }
     }
 
@@ -62,7 +71,7 @@ public class GameSession {
             if (player == null) continue;
             player.setGameMode(GameMode.SPECTATOR);
             showNametag(player);
-            gameManager.getSecretIdentityManager().resetIdentity(player, false);
+            gameManager.getSecretIdentityManager().resetIdentity(player);
             player.sendMessage(ChatUtil.prefixed("&7End of the game!"));
         }
     }
@@ -135,15 +144,35 @@ public class GameSession {
         gameManager.getSecretIdentityManager().applyUniqueIdentities(players);
     }
 
-    private void notifyRole(Player player, Role role) {
+    private void showRoleTitle(Player player, Role role) {
         if (player == null || role == null) {
             return;
         }
-        switch (role) {
-            case MURDERER -> player.sendMessage(ChatUtil.prefixed("&cYou are the Murderer."));
-            case DETECTIVE -> player.sendMessage(ChatUtil.prefixed("&bYou are the Detective."));
-            case BYSTANDER -> player.sendMessage(ChatUtil.prefixed("&aYou are a Bystander."));
-        }
+        Title title = switch (role) {
+            case MURDERER -> Title.title(
+                    ChatUtil.component("&c&lMurderer      "),
+                    ChatUtil.component("      &4Don't get caught"),
+                    Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
+            );
+            case DETECTIVE -> Title.title(
+                    ChatUtil.component("&3&lBystander      "),
+                    ChatUtil.component("       &dWith a secret weapon"),
+                    Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
+            );
+            case BYSTANDER -> Title.title(
+                    ChatUtil.component("&3&lBystander       "),
+                    ChatUtil.component("      &3Kill the murderer"),
+                    Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
+            );
+        };
+        player.showTitle(title);
+        // reveal sound 10 ticks after, not sure if it's the exact time
+        Bukkit.getScheduler().runTaskLater(MurderPlugin.getInstance(), task -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            player.playSound(player.getLocation(), Sound.ENTITY_GHAST_HURT, 1.0f, 1.0f);
+        }, 10L);
     }
 
     public static void hideNametag(Player player) {

@@ -126,14 +126,16 @@ public class Arena {
         }
     }
 
-    // TODO: Leave while in game
     public void removePlayer(Player player, GameManager gameManager) {
         if (!(activePlayers.remove(player.getUniqueId()))) return;
+        if (arenaState instanceof ActiveArenaState activeArenaState) {
+            activeArenaState.clearChatMenu(player);
+        }
         if (gameManager.getArenaManager().getVoteSession() != null) {
             gameManager.getArenaManager().getVoteSession().removeVote(player.getUniqueId());
         }
         gameManager.getConfigurationManager().loadRollback(player);
-        gameManager.getSecretIdentityManager().resetIdentity(player, false);
+        gameManager.getSecretIdentityManager().resetIdentity(player);
         GameSession.showNametag(player);
         gameManager.getScoreboardManager().clear(player);
         updateLobbyBoards(gameManager);

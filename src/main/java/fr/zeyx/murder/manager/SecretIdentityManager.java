@@ -40,18 +40,16 @@ public class SecretIdentityManager implements Listener {
         warnInvalidUsernames();
     }
 
-    public void applyRandomIdentity(Player player) {
+    public String applyRandomIdentity(Player player) {
         List<String> names = configurationManager.getSecretIdentityNames();
         if (names.isEmpty()) {
-            player.sendMessage(ChatUtil.prefixed("&cNo secret identities configured."));
-            return;
+            return null;
         }
         String username = pickRandomIdentity(player.getUniqueId(), names);
         if (username == null) {
-            player.sendMessage(ChatUtil.prefixed("&cNo alternative identity available."));
-            return;
+            return null;
         }
-        applyIdentity(player, username);
+        return applyIdentity(player, username) ? username : null;
     }
 
     public boolean applyUniqueIdentities(List<Player> players) {
@@ -77,11 +75,6 @@ public class SecretIdentityManager implements Listener {
             MurderPlugin.getInstance().getLogger()
                     .warning("Not enough secret identities configured. Need " + players.size()
                             + " but found " + validNames.size() + ".");
-            for (Player player : players) {
-                if (player != null && player.isOnline()) {
-                    player.sendMessage(ChatUtil.prefixed("&cNot enough secret identities configured."));
-                }
-            }
             return false;
         }
         Collections.shuffle(validNames);
@@ -94,21 +87,14 @@ public class SecretIdentityManager implements Listener {
         return true;
     }
 
-    public void resetIdentity(Player player) {
-        resetIdentity(player, true);
-    }
-
-    public void resetIdentity(Player player, boolean notify) {
+    public boolean resetIdentity(Player player) {
         bumpRequestVersion(player.getUniqueId());
         Component original = originalListNames.remove(player.getUniqueId());
         PlayerProfile originalProfile = originalProfiles.remove(player.getUniqueId());
         currentIdentities.remove(player.getUniqueId());
         requestVersions.remove(player.getUniqueId());
         if (original == null && originalProfile == null) {
-            if (notify) {
-                player.sendMessage(ChatUtil.prefixed("&cYou don't have a secret identity to reset."));
-            }
-            return;
+            return false;
         }
         if (player.isOnline()) {
             if (originalProfile != null) {
@@ -118,18 +104,15 @@ public class SecretIdentityManager implements Listener {
                 player.playerListName(original);
             }
             refreshPlayerAppearance(player);
-            if (notify) {
-                player.sendMessage(ChatUtil.prefixed("&aYour identity has been reset."));
-            }
         }
+        return true;
     }
 
-    private void applyIdentity(Player player, String username) {
+    private boolean applyIdentity(Player player, String username) {
         if (!isValidUsername(username)) {
             MurderPlugin.getInstance().getLogger()
                     .warning("Secret identity '" + username + "' is not a valid Minecraft username.");
-            player.sendMessage(ChatUtil.prefixed("&cThat identity is not a valid Minecraft username."));
-            return;
+            return false;
         }
 
         int requestVersion = bumpRequestVersion(player.getUniqueId());
@@ -157,18 +140,17 @@ public class SecretIdentityManager implements Listener {
                 if (error != null) {
                     MurderPlugin.getInstance().getLogger()
                             .warning("Failed to resolve secret identity '" + username + "' via Mojang API: " + error.getMessage());
-                    notifyIdentityFailure(player, requestVersion, "&cFailed to apply that identity.");
                     return;
                 }
                 if (textures == null || !textures.hasValue()) {
                     MurderPlugin.getInstance().getLogger()
                             .warning("Secret identity '" + username + "' is not a valid Minecraft account.");
-                    notifyIdentityFailure(player, requestVersion, "&cThat identity could not be resolved.");
                     return;
                 }
                 applyResolvedIdentity(player, username, requestVersion, textures);
             });
         });
+        return true;
     }
 
     private void warnInvalidUsernames() {
@@ -227,7 +209,7 @@ public class SecretIdentityManager implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        resetIdentity(event.getPlayer(), false);
+        resetIdentity(event.getPlayer());
     }
 
     private void applyResolvedIdentity(Player player, String username, int requestVersion, PlayerTextures sourceTextures) {
@@ -252,7 +234,6 @@ public class SecretIdentityManager implements Listener {
             player.playerListName(ChatUtil.component(username));
             currentIdentities.put(player.getUniqueId(), username.toLowerCase());
             refreshPlayerAppearance(player);
-            player.sendMessage(ChatUtil.prefixed("&7Your identity is now &a" + username));
         });
     }
 
@@ -271,7 +252,6 @@ public class SecretIdentityManager implements Listener {
             player.playerListName(ChatUtil.component(username));
             currentIdentities.put(player.getUniqueId(), username.toLowerCase());
             refreshPlayerAppearance(player);
-            player.sendMessage(ChatUtil.prefixed("&7Your identity is now &a" + username));
         });
     }
 
@@ -283,18 +263,6 @@ public class SecretIdentityManager implements Listener {
             viewer.hidePlayer(MurderPlugin.getInstance(), player);
             viewer.showPlayer(MurderPlugin.getInstance(), player);
         }
-    }
-
-    private void notifyIdentityFailure(Player player, int requestVersion, String message) {
-        Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
-            if (!player.isOnline()) {
-                return;
-            }
-            if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
-                return;
-            }
-            player.sendMessage(ChatUtil.prefixed(message));
-        });
     }
 
 }

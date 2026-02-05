@@ -34,15 +34,34 @@ public class DebugSubCommand implements PlayerSubCommand {
 
         if (args[0].equalsIgnoreCase("identity")) {
             if (args.length >= 2 && args[1].equalsIgnoreCase("reset")) {
-                gameManager.getSecretIdentityManager().resetIdentity(player);
+                boolean reset = gameManager.getSecretIdentityManager().resetIdentity(player);
+                if (!reset) {
+                    player.sendMessage(ChatUtil.prefixed("&cYou don't have a secret identity to reset."));
+                    return;
+                }
+                player.sendMessage(ChatUtil.prefixed("&aYour identity has been reset."));
                 return;
             }
-            gameManager.getSecretIdentityManager().applyRandomIdentity(player);
+            if (gameManager.getConfigurationManager().getSecretIdentityNames().isEmpty()) {
+                player.sendMessage(ChatUtil.prefixed("&cNo secret identities configured."));
+                return;
+            }
+            String username = gameManager.getSecretIdentityManager().applyRandomIdentity(player);
+            if (username == null) {
+                player.sendMessage(ChatUtil.prefixed("&cNo alternative identity available."));
+                return;
+            }
+            player.sendMessage(ChatUtil.prefixed("&7Your identity is now &a" + username));
             return;
         }
 
         if (args[0].equalsIgnoreCase("identityreset") || args[0].equalsIgnoreCase("resetidentity")) {
-            gameManager.getSecretIdentityManager().resetIdentity(player);
+            boolean reset = gameManager.getSecretIdentityManager().resetIdentity(player);
+            if (!reset) {
+                player.sendMessage(ChatUtil.prefixed("&cYou don't have a secret identity to reset."));
+                return;
+            }
+            player.sendMessage(ChatUtil.prefixed("&aYour identity has been reset."));
             return;
         }
 
