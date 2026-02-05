@@ -1,6 +1,7 @@
 package fr.zeyx.murder.manager;
 
 import fr.zeyx.murder.MurderPlugin;
+import fr.zeyx.murder.arena.ArenaChatListener;
 import org.bukkit.plugin.PluginManager;
 
 public class GameManager {
@@ -11,6 +12,7 @@ public class GameManager {
     private final ScoreboardManager scoreboardManager;
     private final SecretIdentityManager secretIdentityManager;
     private final CorpseManager corpseManager;
+    private final ArenaChatListener arenaChatListener;
 
     public GameManager() {
         this.configurationManager = new ConfigurationManager();
@@ -19,6 +21,7 @@ public class GameManager {
         this.scoreboardManager = new ScoreboardManager();
         this.secretIdentityManager = new SecretIdentityManager(configurationManager);
         this.corpseManager = new CorpseManager(MurderPlugin.getInstance());
+        this.arenaChatListener = new ArenaChatListener(this);
         registerListeners();
     }
 
@@ -55,6 +58,7 @@ public class GameManager {
         pluginManager.registerEvents(setupWizardManager, MurderPlugin.getInstance());
         pluginManager.registerEvents(scoreboardManager, MurderPlugin.getInstance());
         pluginManager.registerEvents(secretIdentityManager, MurderPlugin.getInstance());
+        pluginManager.registerEvents(arenaChatListener, MurderPlugin.getInstance());
     }
 
 }

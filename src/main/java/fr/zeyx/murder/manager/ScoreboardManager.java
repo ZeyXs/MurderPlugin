@@ -1,7 +1,7 @@
 package fr.zeyx.murder.manager;
 
 import fr.mrmicky.fastboard.FastBoard;
-import fr.zeyx.murder.util.ChatUtil;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -51,7 +51,7 @@ public class ScoreboardManager implements Listener {
     public void updateBoard(Player player, String title, List<String> lines) {
         FastBoard board = boards.computeIfAbsent(player.getUniqueId(), key -> new FastBoard(player));
         if (title != null) {
-            board.updateTitle(ChatUtil.legacy(title));
+            board.updateTitle(ChatColor.translateAlternateColorCodes('&', title));
         }
         board.updateLines(colorize(lines));
     }
@@ -86,7 +86,7 @@ public class ScoreboardManager implements Listener {
             return List.of();
         }
         return lines.stream()
-                .map(line -> line == null ? "" : ChatUtil.legacy(line))
+                .map(line -> line == null ? "" : ChatColor.translateAlternateColorCodes('&', line))
                 .collect(Collectors.toList());
     }
 }

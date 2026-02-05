@@ -162,6 +162,13 @@ public class SecretIdentityManager implements Listener {
         }
     }
 
+    public String getCurrentIdentityName(UUID playerId) {
+        if (playerId == null) {
+            return null;
+        }
+        return currentIdentities.get(playerId);
+    }
+
     private boolean isValidUsername(String username) {
         return username != null && VALID_USERNAME.matcher(username).matches();
     }
@@ -232,7 +239,7 @@ public class SecretIdentityManager implements Listener {
 
             player.setPlayerProfile(targetProfile);
             player.playerListName(ChatUtil.component(username));
-            currentIdentities.put(player.getUniqueId(), username.toLowerCase());
+            currentIdentities.put(player.getUniqueId(), username);
             refreshPlayerAppearance(player);
         });
     }
@@ -250,7 +257,7 @@ public class SecretIdentityManager implements Listener {
 
             player.setPlayerProfile(targetProfile);
             player.playerListName(ChatUtil.component(username));
-            currentIdentities.put(player.getUniqueId(), username.toLowerCase());
+            currentIdentities.put(player.getUniqueId(), username);
             refreshPlayerAppearance(player);
         });
     }

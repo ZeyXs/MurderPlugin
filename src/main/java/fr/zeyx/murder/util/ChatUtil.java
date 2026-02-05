@@ -46,17 +46,6 @@ public class ChatUtil {
         return "(" + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ() + ")";
     }
 
-    public static String legacy(String legacyText) {
-        return translate(legacyText);
-    }
-
-    public static String legacy(Component component) {
-        if (component == null) {
-            return "";
-        }
-        return LEGACY_SERIALIZER.serialize(component);
-    }
-
     private static String translate(String legacyText) {
         String input = legacyText == null ? "" : legacyText;
         return ChatColor.translateAlternateColorCodes('&', input);

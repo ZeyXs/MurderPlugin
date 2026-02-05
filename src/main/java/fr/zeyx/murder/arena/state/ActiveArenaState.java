@@ -5,10 +5,12 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.ArenaState;
 import fr.zeyx.murder.arena.task.ActiveArenaTask;
 import fr.zeyx.murder.game.GameSession;
-import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
 import fr.zeyx.murder.game.QuickChatMenu;
+import fr.zeyx.murder.manager.GameManager;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -25,8 +27,12 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class ActiveArenaState extends ArenaState {
@@ -36,6 +42,7 @@ public class ActiveArenaState extends ArenaState {
     private ActiveArenaTask activeArenaTask;
     private GameSession session;
     private final Map<UUID, ItemStack[]> chatHotbars = new HashMap<>();
+    private final Set<UUID> chatMenuCooldown = new HashSet<>();
 
     public ActiveArenaState(GameManager gameManager, Arena arena) {
         this.gameManager = gameManager;
@@ -94,6 +101,7 @@ public class ActiveArenaState extends ArenaState {
             arena.removePlayer(player, gameManager);
         }
         chatHotbars.remove(player.getUniqueId());
+        chatMenuCooldown.remove(player.getUniqueId());
     }
 
     @EventHandler
@@ -107,7 +115,11 @@ public class ActiveArenaState extends ArenaState {
 
         Component itemName = event.getItem().getItemMeta().displayName();
         if (itemName == null) return;
-        String legacyName = ChatUtil.legacy(itemName);
+        if (chatMenuCooldown.contains(player.getUniqueId())) {
+            event.setCancelled(true);
+            return;
+        }
+        String legacyName = LegacyComponentSerializer.legacySection().serialize(itemName);
         if (QuickChatMenu.CHAT_BOOK_NAME.equals(legacyName)) {
             event.setCancelled(true);
             openChatMenu(player);
@@ -122,7 +134,9 @@ public class ActiveArenaState extends ArenaState {
             String message = QuickChatMenu.resolveMessage(legacyName);
             if (message != null) {
                 event.setCancelled(true);
-                arena.sendArenaMessage(message);
+                closeChatMenu(player);
+                String resolvedMessage = resolveQuickChatMessage(player, legacyName, message);
+                sendQuickChatMessage(player, resolvedMessage);
                 return;
             }
         }
@@ -177,6 +191,7 @@ public class ActiveArenaState extends ArenaState {
         for (int i = 0; i < 9; i++) {
             player.getInventory().setItem(i, menu[i]);
         }
+        applyChatMenuCooldown(playerId);
     }
 
     private void closeChatMenu(Player player) {
@@ -188,6 +203,58 @@ public class ActiveArenaState extends ArenaState {
         for (int i = 0; i < 9; i++) {
             player.getInventory().setItem(i, saved[i]);
         }
+        applyChatMenuCooldown(playerId);
+    }
+
+    private void sendQuickChatMessage(Player sender, String message) {
+        String name = resolveChatName(sender);
+        String formatted = ChatColor.translateAlternateColorCodes('&', "&f" + name + " &8• &7" + message);
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            viewer.sendMessage(formatted);
+        }
+    }
+
+    private String resolveQuickChatMessage(Player sender, String legacyName, String defaultMessage) {
+        if (!QuickChatMenu.LIME_DYE_NAME.equals(legacyName)) {
+            return ChatColor.stripColor(defaultMessage);
+        }
+        List<String> nearbyNames = findNearbyPlayerNames(sender, 15.0);
+        if (nearbyNames.isEmpty()) {
+            return "I am next to nobody!";
+        }
+        return "I am next to " + String.join(", ", nearbyNames) + "!";
+    }
+
+    private List<String> findNearbyPlayerNames(Player sender, double radius) {
+        List<String> names = new ArrayList<>();
+        if (sender == null || sender.getWorld() == null) {
+            return names;
+        }
+        double radiusSquared = radius * radius;
+        for (UUID playerId : arena.getActivePlayers()) {
+            if (sender.getUniqueId().equals(playerId)) {
+                continue;
+            }
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null || player.getWorld() == null) {
+                continue;
+            }
+            if (!player.getWorld().equals(sender.getWorld())) {
+                continue;
+            }
+            if (player.getLocation().distanceSquared(sender.getLocation()) <= radiusSquared) {
+                names.add(resolveChatName(player));
+            }
+        }
+        return names;
+    }
+
+    private String resolveChatName(Player player) {
+        String identity = gameManager.getSecretIdentityManager().getCurrentIdentityName(player.getUniqueId());
+        if (identity != null && !identity.isBlank()) {
+            return identity;
+        }
+        return player.getName();
     }
 
     public void clearChatMenu(Player player) {
@@ -195,6 +262,12 @@ public class ActiveArenaState extends ArenaState {
             return;
         }
         chatHotbars.remove(player.getUniqueId());
+        chatMenuCooldown.remove(player.getUniqueId());
+    }
+
+    private void applyChatMenuCooldown(UUID playerId) {
+        chatMenuCooldown.add(playerId);
+        Bukkit.getScheduler().runTaskLater(MurderPlugin.getInstance(), task -> chatMenuCooldown.remove(playerId), 1L);
     }
 
 }
