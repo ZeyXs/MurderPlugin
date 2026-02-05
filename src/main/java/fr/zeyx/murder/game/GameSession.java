@@ -7,6 +7,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,6 +19,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class GameSession {
+
+    private static final String HIDDEN_NAMETAG_TEAM = "murder_hide";
 
     private final GameManager gameManager;
     private final Arena arena;
@@ -47,15 +51,18 @@ public class GameSession {
             }
             player.getInventory().clear();
             gameManager.getScoreboardManager().showGameBoard(player);
+            hideNametag(player);
             notifyRole(player, roles.get(playerId));
         }
     }
 
     public void endGame() {
-        for (UUID playerId : alivePlayers) {
+        for (UUID playerId : arena.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) continue;
             player.setGameMode(GameMode.SPECTATOR);
+            showNametag(player);
+            gameManager.getSecretIdentityManager().resetIdentity(player, false);
             player.sendMessage(ChatUtil.prefixed("&7End of the game!"));
         }
     }
@@ -137,5 +144,34 @@ public class GameSession {
             case DETECTIVE -> player.sendMessage(ChatUtil.prefixed("&bYou are the Detective."));
             case BYSTANDER -> player.sendMessage(ChatUtil.prefixed("&aYou are a Bystander."));
         }
+    }
+
+    public static void hideNametag(Player player) {
+        if (player == null) {
+            return;
+        }
+        Team team = getOrCreateHiddenTeam();
+        team.addEntry(player.getName());
+    }
+
+    public static void showNametag(Player player) {
+        if (player == null) {
+            return;
+        }
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        Team team = scoreboard.getTeam(HIDDEN_NAMETAG_TEAM);
+        if (team != null) {
+            team.removeEntry(player.getName());
+        }
+    }
+
+    private static Team getOrCreateHiddenTeam() {
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        Team team = scoreboard.getTeam(HIDDEN_NAMETAG_TEAM);
+        if (team == null) {
+            team = scoreboard.registerNewTeam(HIDDEN_NAMETAG_TEAM);
+            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
+        }
+        return team;
     }
 }

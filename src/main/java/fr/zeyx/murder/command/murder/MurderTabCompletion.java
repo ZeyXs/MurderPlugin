@@ -43,7 +43,7 @@ public class MurderTabCompletion implements TabCompleter {
                     return filterByPrefix(Arrays.asList("list", "create", "edit", "remove"), args[1]);
                 }
                 case "debug" -> {
-                    return filterByPrefix(List.of("start", "identity", "identityreset", "resetidentity", "corpse", "corpseclear", "clearcorpse"), args[1]);
+                    return filterByPrefix(List.of("force-start", "identity", "identityreset", "resetidentity", "corpse", "corpseclear", "clearcorpse"), args[1]);
                 }
                 case "lobby" -> {
                     return filterByPrefix(List.of("set"), args[1]);

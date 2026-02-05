@@ -95,22 +95,33 @@ public class SecretIdentityManager implements Listener {
     }
 
     public void resetIdentity(Player player) {
+        resetIdentity(player, true);
+    }
+
+    public void resetIdentity(Player player, boolean notify) {
         bumpRequestVersion(player.getUniqueId());
         Component original = originalListNames.remove(player.getUniqueId());
         PlayerProfile originalProfile = originalProfiles.remove(player.getUniqueId());
         currentIdentities.remove(player.getUniqueId());
+        requestVersions.remove(player.getUniqueId());
         if (original == null && originalProfile == null) {
-            player.sendMessage(ChatUtil.prefixed("&cYou don't have a secret identity to reset."));
+            if (notify) {
+                player.sendMessage(ChatUtil.prefixed("&cYou don't have a secret identity to reset."));
+            }
             return;
         }
-        if (originalProfile != null) {
-            player.setPlayerProfile(originalProfile);
+        if (player.isOnline()) {
+            if (originalProfile != null) {
+                player.setPlayerProfile(originalProfile);
+            }
+            if (original != null) {
+                player.playerListName(original);
+            }
+            refreshPlayerAppearance(player);
+            if (notify) {
+                player.sendMessage(ChatUtil.prefixed("&aYour identity has been reset."));
+            }
         }
-        if (original != null) {
-            player.playerListName(original);
-        }
-        refreshPlayerAppearance(player);
-        player.sendMessage(ChatUtil.prefixed("&aYour identity has been reset."));
     }
 
     private void applyIdentity(Player player, String username) {
@@ -216,10 +227,7 @@ public class SecretIdentityManager implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        originalListNames.remove(event.getPlayer().getUniqueId());
-        originalProfiles.remove(event.getPlayer().getUniqueId());
-        requestVersions.remove(event.getPlayer().getUniqueId());
-        currentIdentities.remove(event.getPlayer().getUniqueId());
+        resetIdentity(event.getPlayer(), false);
     }
 
     private void applyResolvedIdentity(Player player, String username, int requestVersion, PlayerTextures sourceTextures) {

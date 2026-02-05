@@ -133,6 +133,8 @@ public class Arena {
             gameManager.getArenaManager().getVoteSession().removeVote(player.getUniqueId());
         }
         gameManager.getConfigurationManager().loadRollback(player);
+        gameManager.getSecretIdentityManager().resetIdentity(player, false);
+        GameSession.showNametag(player);
         gameManager.getScoreboardManager().clear(player);
         updateLobbyBoards(gameManager);
 
