@@ -36,7 +36,7 @@ public final class MurderPlugin extends JavaPlugin {
 
     private void registerAllCommands(CommandRegistrar registrar) {
         MurderBaseCommand murderBaseCommand = new MurderBaseCommand(gameManager);
-        MurderTabCompletion murderTabCompletion = new MurderTabCompletion(gameManager, murderBaseCommand);
+        MurderTabCompletion murderTabCompletion = new MurderTabCompletion(murderBaseCommand);
         registerCommand(registrar, "murder", "Base command for the Murder mini-game.", murderBaseCommand, murderTabCompletion);
     }
 

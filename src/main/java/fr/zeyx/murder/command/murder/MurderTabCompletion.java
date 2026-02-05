@@ -1,31 +1,24 @@
 package fr.zeyx.murder.command.murder;
 
-
-import fr.zeyx.murder.arena.Arena;
+import fr.zeyx.murder.command.CommandArgs;
 import fr.zeyx.murder.command.SubCommand;
-import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.arena.vote.MapVoteSession;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class MurderTabCompletion implements TabCompleter {
 
-    private final GameManager gameManager;
-    private final List<String> subCommandNames;
+    private final MurderBaseCommand baseCommand;
 
-    public MurderTabCompletion(GameManager gameManager, MurderBaseCommand baseCommand) {
-        this.gameManager = gameManager;
-        this.subCommandNames = baseCommand.getSubCommandList()
-                .stream()
-                .map(SubCommand::getName)
-                .collect(Collectors.toList());
+    public MurderTabCompletion(MurderBaseCommand baseCommand) {
+        this.baseCommand = baseCommand;
     }
 
     @Override
@@ -35,70 +28,28 @@ public class MurderTabCompletion implements TabCompleter {
             return Collections.emptyList();
         }
         if (args.length == 1) {
-            return filterByPrefix(subCommandNames, args[0]);
-        }
-        if (args.length == 2) {
-            switch (args[0].toLowerCase()) {
-                case "arena" -> {
-                    return filterByPrefix(Arrays.asList("list", "create", "edit", "remove"), args[1]);
+            Set<String> candidates = new LinkedHashSet<>();
+            for (SubCommand<?> sub : baseCommand.getSubCommandList()) {
+                String permission = sub.getPermission();
+                if (permission != null && !permission.isBlank() && !sender.hasPermission(permission)) {
+                    continue;
                 }
-                case "debug" -> {
-                    return filterByPrefix(List.of("force-start", "identity", "identityreset", "resetidentity", "corpse", "corpseclear", "clearcorpse"), args[1]);
-                }
-                case "lobby" -> {
-                    return filterByPrefix(List.of("set"), args[1]);
-                }
-                case "vote" -> {
-                    MapVoteSession voteSession = gameManager.getArenaManager().getVoteSession();
-                    List<String> candidates = voteSession == null ? getArenaNames() :
-                            voteSession.getCandidates().stream().map(Arena::getName).collect(Collectors.toList());
-                    return filterByPrefix(candidates, args[1]);
-                }
-                default -> {
-                    return Collections.emptyList();
-                }
+                candidates.add(sub.getName());
+                candidates.addAll(sub.getAliases());
             }
-        }
-        if (args.length == 3) {
-            if (args[0].equalsIgnoreCase("debug") && args[1].equalsIgnoreCase("start")) {
-                return filterByPrefix(getArenaNames(), args[2]);
-            }
-            if (args[0].equalsIgnoreCase("debug") && args[1].equalsIgnoreCase("identity")) {
-                return filterByPrefix(List.of("reset"), args[2]);
-            }
-            if (args[0].equalsIgnoreCase("debug") && args[1].equalsIgnoreCase("corpse")) {
-                return filterByPrefix(List.of("clear"), args[2]);
-            }
-            if (!args[0].equalsIgnoreCase("arena")) return Collections.emptyList();
-            if (args[1].equalsIgnoreCase("edit") || args[1].equalsIgnoreCase("remove")) {
-                return filterByPrefix(getArenaNames(), args[2]);
-            }
+            return CommandArgs.filterByPrefix(candidates.stream().collect(Collectors.toList()), args[0]);
         }
 
-        return Collections.emptyList();
-    }
-
-    private List<String> getArenaNames() {
-        return gameManager.getArenaManager().getArenas().stream()
-                .map(Arena::getName)
-                .collect(Collectors.toList());
-    }
-
-    private List<String> filterByPrefix(List<String> candidates, String prefix) {
-        if (candidates == null || candidates.isEmpty()) {
+        SubCommand<?> subCommand = baseCommand.findSubCommand(args[0]);
+        if (subCommand == null) {
             return Collections.emptyList();
         }
-        if (prefix == null || prefix.isEmpty()) {
-            return candidates;
+        String permission = subCommand.getPermission();
+        if (permission != null && !permission.isBlank() && !sender.hasPermission(permission)) {
+            return Collections.emptyList();
         }
-        String lowerPrefix = prefix.toLowerCase();
-        List<String> result = new ArrayList<>();
-        for (String candidate : candidates) {
-            if (candidate != null && candidate.toLowerCase().startsWith(lowerPrefix)) {
-                result.add(candidate);
-            }
-        }
-        return result;
+        String[] subArgs = Arrays.copyOfRange(args, 1, args.length);
+        return subCommand.tabComplete(sender, subArgs);
     }
 
 }

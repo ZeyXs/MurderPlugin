@@ -1,6 +1,7 @@
 package fr.zeyx.murder.command.murder;
 
 import fr.zeyx.murder.arena.Arena;
+import fr.zeyx.murder.command.CommandResult;
 import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
@@ -17,22 +18,36 @@ public class LeaveSubCommand implements PlayerSubCommand {
     }
 
     @Override
-    public void execute(Player player, String[] args) {
+    public CommandResult execute(Player player, String[] args) {
+        if (args.length > 0) {
+            return CommandResult.INVALID_USAGE;
+        }
 
         Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
         if (currentArena.isEmpty()) {
             player.sendMessage(ChatUtil.prefixed("&cYou are not in an arena."));
-            return;
+            return CommandResult.FAILURE;
         }
 
         Arena arena = currentArena.get();
         arena.removePlayer(player, gameManager);
+        return CommandResult.SUCCESS;
 
     }
 
     @Override
     public String getName() {
         return "leave";
+    }
+
+    @Override
+    public String getUsage() {
+        return "/murder leave";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Leave the game.";
     }
 
 }

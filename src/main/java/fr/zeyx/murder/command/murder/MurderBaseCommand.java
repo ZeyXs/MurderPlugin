@@ -1,6 +1,7 @@
 package fr.zeyx.murder.command.murder;
 
 import fr.zeyx.murder.command.CommandSenderSubCommand;
+import fr.zeyx.murder.command.CommandResult;
 import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.command.SubCommand;
 import fr.zeyx.murder.manager.GameManager;
@@ -13,11 +14,11 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class MurderBaseCommand implements CommandExecutor {
 
-    private List<SubCommand<?>> subCommandList = new ArrayList<>();
+    private final List<SubCommand<?>> subCommandList = new ArrayList<>();
 
     public MurderBaseCommand(GameManager gameManager) {
         subCommandList.add(new ArenaSubCommand(gameManager));
@@ -31,38 +32,90 @@ public class MurderBaseCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatUtil.prefixed("&cUsage: /murder <join|arena|leave|debug|lobby|vote>"));
-            return false;
+            sendGlobalUsage(sender);
+            return true;
         }
 
         String subCommandString = args[0];
-        Optional<SubCommand<?>> subCommandOptional = subCommandList.stream()
-                .filter(subCommand -> subCommand.getName().equalsIgnoreCase(subCommandString))
-                .findFirst();
-
-
-        if (subCommandOptional.isEmpty()) {
-            sender.sendMessage(ChatUtil.prefixed("&cUsage: /murder <join|arena|leave|debug|lobby|vote>"));
-            return false;
+        SubCommand<?> subCommand = findSubCommand(subCommandString);
+        if (subCommand == null) {
+            sendGlobalUsage(sender);
+            return true;
         }
 
         String[] subCommandArgs = Arrays.copyOfRange(args, 1, args.length);
-        SubCommand<?> subCommand = subCommandOptional.get();
+        String permission = subCommand.getPermission();
+        if (permission != null && !permission.isBlank() && !sender.hasPermission(permission)) {
+            sender.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
+            return true;
+        }
+
+        CommandResult result;
         if (subCommand instanceof PlayerSubCommand playerSubCommand) {
             if (!(sender instanceof Player)) {
                 sender.sendMessage(ChatUtil.prefixed("&cYou must be a player to run this command."));
-                return false;
+                return true;
             }
-            playerSubCommand.execute((Player) sender, subCommandArgs);
+            result = playerSubCommand.execute((Player) sender, subCommandArgs);
         } else {
             CommandSenderSubCommand commandSenderSubCommand = (CommandSenderSubCommand) subCommand;
-            commandSenderSubCommand.execute(sender, subCommandArgs);
+            result = commandSenderSubCommand.execute(sender, subCommandArgs);
         }
 
+        if (result == CommandResult.INVALID_USAGE) {
+            sendSubUsage(sender, subCommand);
+        }
         return true;
     }
 
     public List<SubCommand<?>> getSubCommandList() {
         return subCommandList;
+    }
+
+    public SubCommand<?> findSubCommand(String name) {
+        if (name == null) {
+            return null;
+        }
+        String normalized = name.toLowerCase();
+        for (SubCommand<?> subCommand : subCommandList) {
+            if (subCommand.getName().equalsIgnoreCase(normalized)) {
+                return subCommand;
+            }
+            for (String alias : subCommand.getAliases()) {
+                if (alias != null && alias.equalsIgnoreCase(normalized)) {
+                    return subCommand;
+                }
+            }
+        }
+        return null;
+    }
+
+    private void sendGlobalUsage(CommandSender sender) {
+        List<SubCommand<?>> visible = subCommandList.stream()
+                .filter(sub -> {
+                    String permission = sub.getPermission();
+                    return permission == null || permission.isBlank() || sender.hasPermission(permission);
+                })
+                .toList();
+        String names = visible.stream()
+                .map(SubCommand::getName)
+                .collect(Collectors.joining("|"));
+        sender.sendMessage(ChatUtil.prefixed("&cUsage: /murder <" + names + ">"));
+        for (SubCommand<?> subCommand : visible) {
+            String description = subCommand.getDescription();
+            if (description == null || description.isBlank()) {
+                sender.sendMessage(ChatUtil.prefixed("&7" + subCommand.getUsage()));
+            } else {
+                sender.sendMessage(ChatUtil.prefixed("&7" + subCommand.getUsage() + " &8- &7" + description));
+            }
+        }
+    }
+
+    private void sendSubUsage(CommandSender sender, SubCommand<?> subCommand) {
+        sender.sendMessage(ChatUtil.prefixed("&cUsage: " + subCommand.getUsage()));
+        String description = subCommand.getDescription();
+        if (description != null && !description.isBlank()) {
+            sender.sendMessage(ChatUtil.prefixed("&7" + description));
+        }
     }
 }
