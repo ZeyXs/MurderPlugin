@@ -4,11 +4,20 @@ import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Scoreboard;
@@ -28,6 +37,11 @@ import java.util.concurrent.ThreadLocalRandom;
 public class GameSession {
 
     private static final String HIDDEN_NAMETAG_TEAM = "murder_hide";
+
+    private static final String MURDERER_KNIFE_NAME = "&7&oKnife";
+    private static final String MURDERER_BUY_KNIFE_NAME = "&7&lBuy Knife&r &7• Right Click";
+    private static final String MURDERER_SWITCH_IDENTITY_NAME = "&7&lSwitch Identity&r &7• Right Click";
+    private static final String DETECTIVE_GUN_NAME = "&7&oGun";
 
     private final GameManager gameManager;
     private final Arena arena;
@@ -57,6 +71,18 @@ public class GameSession {
                 player.teleport(spawn);
             }
             player.getInventory().clear();
+            Role role = roles.get(playerId);
+            if (role == Role.MURDERER) {
+                ItemStack knife = new ItemBuilder(Material.WOODEN_SWORD).setName(ChatUtil.itemComponent(MURDERER_KNIFE_NAME, true)).toItemStack();
+                applyInstantAttackSpeed(knife);
+                player.getInventory().setItem(0, knife);
+                player.getInventory().setItem(3, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_BUY_KNIFE_NAME)).toItemStack());
+                player.getInventory().setItem(4, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_SWITCH_IDENTITY_NAME)).toItemStack());
+            } else if (role == Role.DETECTIVE) {
+                ItemStack gun = new ItemBuilder(Material.WOODEN_HOE).setName(ChatUtil.itemComponent(DETECTIVE_GUN_NAME, true)).toItemStack();
+                applyInstantAttackSpeed(gun);
+                player.getInventory().setItem(0, gun);
+            }
             player.getInventory().setItem(8, QuickChatMenu.buildChatBook());
             String roleLine = switch (roles.get(playerId)) {
                 case MURDERER -> "&4Murderer";
@@ -211,5 +237,27 @@ public class GameSession {
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
         }
         return team;
+    }
+
+    private void applyInstantAttackSpeed(ItemStack item) {
+        if (item == null) {
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        NamespacedKey key = new NamespacedKey(MurderPlugin.getInstance(), "instant_attack_speed");
+        meta.addAttributeModifier(
+                Attribute.ATTACK_SPEED,
+                new AttributeModifier(
+                        key,
+                        1000.0,
+                        AttributeModifier.Operation.ADD_NUMBER,
+                        EquipmentSlotGroup.HAND
+                )
+        );
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        item.setItemMeta(meta);
     }
 }
