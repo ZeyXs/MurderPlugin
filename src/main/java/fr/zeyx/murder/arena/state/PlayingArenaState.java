@@ -114,12 +114,12 @@ public abstract class PlayingArenaState extends ArenaState {
         }
     }
 
-    /*@EventHandler
+    @EventHandler
     public void onFoodChange(FoodLevelChangeEvent event) {
         if (event.getEntity() instanceof Player player && shouldCancelFor(player)) {
             event.setCancelled(true);
         }
-    }*/
+    }
 
     @EventHandler
     public void onDrop(PlayerDropItemEvent event) {

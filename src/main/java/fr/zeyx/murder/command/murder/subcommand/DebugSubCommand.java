@@ -80,6 +80,20 @@ public class DebugSubCommand implements PlayerSubCommand {
             return CommandResult.SUCCESS;
         }
 
+        if (args[0].equalsIgnoreCase("suicide")) {
+            Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
+            if (currentArena.isEmpty() || !(currentArena.get().getArenaState() instanceof ActiveArenaState activeArenaState)) {
+                player.sendMessage(ChatUtil.prefixed("&cYou must be in an active game to use this command."));
+                return CommandResult.FAILURE;
+            }
+            if (!activeArenaState.eliminatePlayer(player)) {
+                player.sendMessage(ChatUtil.prefixed("&cYou are already dead."));
+                return CommandResult.FAILURE;
+            }
+            player.sendMessage(ChatUtil.prefixed("&eDebug: suicide triggered."));
+            return CommandResult.SUCCESS;
+        }
+
         if (!args[0].equalsIgnoreCase("force-start")) {
             return CommandResult.INVALID_USAGE;
         }
@@ -119,7 +133,7 @@ public class DebugSubCommand implements PlayerSubCommand {
 
     @Override
     public String getUsage() {
-        return "/murder debug <force-start|identity|identityreset|corpse|corpseclear> [arena]";
+        return "/murder debug <force-start|identity|identityreset|corpse|corpseclear|suicide> [arena]";
     }
 
     @Override
@@ -139,7 +153,7 @@ public class DebugSubCommand implements PlayerSubCommand {
         }
         if (args.length == 1) {
             return CommandArgs.filterByPrefix(
-                    List.of("force-start", "identity", "identityreset", "resetidentity", "corpse", "corpseclear", "clearcorpse"),
+                    List.of("force-start", "identity", "identityreset", "resetidentity", "corpse", "corpseclear", "clearcorpse", "suicide"),
                     args[0]
             );
         }

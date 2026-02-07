@@ -10,13 +10,18 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,6 +87,10 @@ public class ActiveArenaState extends PlayingArenaState {
     public void onInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         if (!arena.isPlaying(player)) return;
+        if (!isAlive(player.getUniqueId())) {
+            event.setCancelled(true);
+            return;
+        }
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (!event.hasItem()) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
@@ -118,6 +127,85 @@ public class ActiveArenaState extends PlayingArenaState {
             event.setCancelled(true);
             arena.removePlayer(player, gameManager);
         }
+    }
+
+    @Override
+    @EventHandler(ignoreCancelled = true)
+    public void onDamageByEntity(EntityDamageByEntityEvent event) {
+        Player damager = resolveDamager(event);
+        Player victim = event.getEntity() instanceof Player damagedPlayer ? damagedPlayer : null;
+        boolean victimInArena = victim != null && arena.isPlaying(victim);
+
+        if (damager == null) {
+            if (victimInArena) {
+                event.setCancelled(true);
+            }
+            return;
+        }
+
+        boolean damagerInArena = arena.isPlaying(damager);
+        if (victimInArena && !damagerInArena) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!damagerInArena) {
+            return;
+        }
+        if (!isAlive(damager.getUniqueId())) {
+            event.setCancelled(true);
+            return;
+        }
+
+        if (victim == null || !arena.isPlaying(victim) || !isAlive(victim.getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @Override
+    @EventHandler(ignoreCancelled = true)
+    public void onDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player victim) || !arena.isPlaying(victim)) {
+            return;
+        }
+        if (!isAlive(victim.getUniqueId())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (event.getFinalDamage() < victim.getHealth()) {
+            return;
+        }
+
+        event.setCancelled(true);
+        eliminatePlayer(victim, resolveDamager(event));
+    }
+
+    public boolean eliminatePlayer(Player victim) {
+        return eliminatePlayer(victim, null);
+    }
+
+    public boolean eliminatePlayer(Player victim, Player killer) {
+        if (victim == null || session == null || !arena.isPlaying(victim)) {
+            return false;
+        }
+        UUID victimId = victim.getUniqueId();
+        if (!isAlive(victimId)) {
+            return false;
+        }
+
+        gameManager.getCorpseManager().spawnCorpse(victim, victim.getLocation(), victim.getInventory().getChestplate());
+
+        clearChatMenu(victim);
+        victim.removePotionEffect(PotionEffectType.SPEED);
+        victim.getInventory().clear();
+        victim.getInventory().setArmorContents(new ItemStack[4]);
+        victim.setFireTicks(0);
+        victim.setFallDistance(0f);
+        victim.setGameMode(GameMode.SPECTATOR);
+
+        session.removeAlive(victimId);
+        updateAliveCountDisplays();
+        broadcastDeath(victim, killer);
+        return true;
     }
 
     private void openChatMenu(Player player) {
@@ -212,6 +300,51 @@ public class ActiveArenaState extends PlayingArenaState {
     private void applyChatMenuCooldown(UUID playerId) {
         chatMenuCooldown.add(playerId);
         Bukkit.getScheduler().runTaskLater(MurderPlugin.getInstance(), task -> chatMenuCooldown.remove(playerId), 1L);
+    }
+
+    private boolean isAlive(UUID playerId) {
+        return session != null && session.getAlivePlayers().contains(playerId);
+    }
+
+    private Player resolveDamager(EntityDamageEvent event) {
+        if (!(event instanceof EntityDamageByEntityEvent byEntityEvent)) {
+            return null;
+        }
+        if (byEntityEvent.getDamager() instanceof Player damager) {
+            return damager;
+        }
+        if (byEntityEvent.getDamager() instanceof Projectile projectile
+                && projectile.getShooter() instanceof Player shooter) {
+            return shooter;
+        }
+        return null;
+    }
+
+    private void broadcastDeath(Player victim, Player killer) {
+        String victimName = resolveChatName(victim);
+        if (killer != null && !killer.getUniqueId().equals(victim.getUniqueId()) && arena.isPlaying(killer)) {
+            arena.sendArenaMessage("&c" + victimName + " &7was killed by &c" + resolveChatName(killer) + "&7.");
+            return;
+        }
+        arena.sendArenaMessage("&c" + victimName + " &7died.");
+    }
+
+    private void updateAliveCountDisplays() {
+        int aliveCount = session == null ? 0 : session.getAlivePlayers().size();
+        Set<UUID> alive = session == null ? Set.of() : new HashSet<>(session.getAlivePlayers());
+        for (UUID playerId : arena.getActivePlayers()) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null) {
+                continue;
+            }
+            if (alive.contains(playerId)) {
+                player.setLevel(aliveCount);
+                player.setExp(1.0f);
+                continue;
+            }
+            player.setLevel(0);
+            player.setExp(0.0f);
+        }
     }
 
 }

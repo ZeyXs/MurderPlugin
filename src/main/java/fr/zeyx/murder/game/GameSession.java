@@ -254,20 +254,22 @@ public class GameSession {
     }
 
     public static void hideNametag(Player player) {
-        if (player == null) {
+        if (player == null || Bukkit.getScoreboardManager() == null) {
             return;
         }
         Team team = getOrCreateHiddenTeam();
-        team.addEntry(player.getName());
+        if (!team.hasEntry(player.getName())) {
+            team.addEntry(player.getName());
+        }
     }
 
     public static void showNametag(Player player) {
-        if (player == null) {
+        if (player == null || Bukkit.getScoreboardManager() == null) {
             return;
         }
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         Team team = scoreboard.getTeam(HIDDEN_NAMETAG_TEAM);
-        if (team != null) {
+        if (team != null && team.hasEntry(player.getName())) {
             team.removeEntry(player.getName());
         }
     }

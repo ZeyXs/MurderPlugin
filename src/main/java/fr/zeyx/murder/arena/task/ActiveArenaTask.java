@@ -34,21 +34,19 @@ public class ActiveArenaTask extends BukkitRunnable {
         }
 
         if (session.getAlivePlayers().size() <= 1) {
-            if (session.getAlivePlayers().isEmpty()) {
+            cancel();
+            session.endGame();
+
+            MurderPlugin.getInstance().getServer().getScheduler().runTaskLater(MurderPlugin.getInstance(), endGameTask -> {
+                gameManager.getCorpseManager().clearCorpses();
                 arena.setArenaSate(new WaitingArenaState(gameManager, arena));
-            } else {
-                cancel();
-
-                session.endGame();
-
-                MurderPlugin.getInstance().getServer().getScheduler().runTaskLater(MurderPlugin.getInstance(), endGameTask -> {
-                    arena.setArenaSate(new WaitingArenaState(gameManager, arena));
-                    for (UUID playerId : session.getAlivePlayers()) {
-                        Player player = Bukkit.getPlayer(playerId);
-                        if (player != null) arena.removePlayer(player, gameManager);
+                for (UUID playerId : new ArrayList<>(arena.getActivePlayers())) {
+                    Player player = Bukkit.getPlayer(playerId);
+                    if (player != null) {
+                        arena.removePlayer(player, gameManager);
                     }
-                }, 20 * 5);
-            }
+                }
+            }, 20 * 5);
         }
     }
 
