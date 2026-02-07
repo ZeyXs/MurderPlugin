@@ -49,7 +49,7 @@ public class ActiveArenaState extends PlayingArenaState {
         session.start();
 
         activeArenaTask = new ActiveArenaTask(gameManager, arena, session);
-        activeArenaTask.runTaskTimer(MurderPlugin.getInstance(), 0, 8);
+        activeArenaTask.runTaskTimer(MurderPlugin.getInstance(), 0, 1);
     }
 
     @Override
@@ -166,7 +166,7 @@ public class ActiveArenaState extends PlayingArenaState {
         if (nearbyNames.isEmpty()) {
             return "I am next to nobody!";
         }
-        return "I am next to " + String.join(", ", nearbyNames) + "!";
+        return "I am next to " + String.join("&7, ", nearbyNames) + "&7!";
     }
 
     private List<String> findNearbyPlayerNames(Player sender, double radius) {
@@ -194,9 +194,9 @@ public class ActiveArenaState extends PlayingArenaState {
     }
 
     private String resolveChatName(Player player) {
-        String identity = gameManager.getSecretIdentityManager().getCurrentIdentityName(player.getUniqueId());
-        if (identity != null && !identity.isBlank()) {
-            return identity;
+        String displayName = gameManager.getSecretIdentityManager().getColoredName(player);
+        if (displayName != null && !displayName.isBlank()) {
+            return displayName;
         }
         return player.getName();
     }

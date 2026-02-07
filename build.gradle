@@ -44,7 +44,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly("com.google.code.gson:gson:2.11.0")
+    compileOnly("com.google.code.gson:gson:2.13.2")
     compileOnly("net.citizensnpcs:citizensapi:2.0.41-SNAPSHOT")
     implementation("net.wesjd:anvilgui:1.10.11-SNAPSHOT")
     implementation("fr.mrmicky:fastboard:2.1.5")

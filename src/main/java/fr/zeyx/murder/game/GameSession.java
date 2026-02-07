@@ -6,6 +6,7 @@ import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,6 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -37,6 +39,8 @@ import java.util.concurrent.ThreadLocalRandom;
 public class GameSession {
 
     private static final String HIDDEN_NAMETAG_TEAM = "murder_hide";
+    private static final int MURDERER_FOOD_LEVEL = 8;
+    private static final int NON_MURDERER_FOOD_LEVEL = 6;
 
     private static final String MURDERER_KNIFE_NAME = "&7&oKnife";
     private static final String MURDERER_BUY_KNIFE_NAME = "&7&lBuy Knife&r &7• Right Click";
@@ -73,22 +77,31 @@ public class GameSession {
             }
             player.getInventory().clear();
             Role role = roles.get(playerId);
+            if (role != null) {
+                enforceHungerLock(player);
+            }
             if (role == Role.MURDERER) {
                 ItemStack knife = new ItemBuilder(Material.WOODEN_SWORD).setName(ChatUtil.itemComponent(MURDERER_KNIFE_NAME, true)).toItemStack();
                 applyInstantAttackSpeed(knife);
                 player.getInventory().setItem(0, knife);
                 player.getInventory().setItem(3, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_BUY_KNIFE_NAME)).toItemStack());
                 player.getInventory().setItem(4, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_SWITCH_IDENTITY_NAME)).toItemStack());
-                player.setFoodLevel(8);
             } else if (role == Role.DETECTIVE) {
                 ItemStack gun = new ItemBuilder(Material.WOODEN_HOE).setName(ChatUtil.itemComponent(DETECTIVE_GUN_NAME, true)).toItemStack();
                 applyInstantAttackSpeed(gun);
                 player.getInventory().setItem(0, gun);
-                player.setFoodLevel(6);
-            } else {
-                player.setFoodLevel(6);
             }
             player.getInventory().setItem(8, QuickChatMenu.buildChatBook());
+            Color identityColor = gameManager.getSecretIdentityManager().getCurrentIdentityLeatherColor(player.getUniqueId());
+            if (identityColor != null) {
+                ItemStack chestplate = new ItemStack(Material.LEATHER_CHESTPLATE);
+                if (chestplate.getItemMeta() instanceof LeatherArmorMeta chestplateMeta) {
+                    chestplateMeta.setColor(identityColor);
+                    chestplateMeta.addItemFlags(ItemFlag.HIDE_DYE);
+                    chestplate.setItemMeta(chestplateMeta);
+                }
+                player.getInventory().setChestplate(chestplate);
+            }
             player.getInventory().setHeldItemSlot(8);
             player.setLevel(aliveCount);
             player.setExp(1.0f);
@@ -97,9 +110,9 @@ public class GameSession {
                 case DETECTIVE -> "&1Detective";
                 case BYSTANDER -> "&bBystander";
             };
-            String identityName = gameManager.getSecretIdentityManager().getCurrentIdentityName(player.getUniqueId());
+            String identityName = gameManager.getSecretIdentityManager().getCurrentIdentityDisplayName(player.getUniqueId());
             if (identityName == null || identityName.isBlank()) {
-                identityName = "Unknown";
+                identityName = gameManager.getSecretIdentityManager().getColoredName(player);
             }
             gameManager.getScoreboardManager().showGameBoard(player, roleLine, identityName);
             hideNametag(player);
@@ -125,6 +138,28 @@ public class GameSession {
 
     public Role getRole(UUID playerId) {
         return roles.get(playerId);
+    }
+
+    public int getLockedFoodLevel(UUID playerId) {
+        Role role = roles.get(playerId);
+        if (role == null) {
+            return -1;
+        }
+        return role == Role.MURDERER ? MURDERER_FOOD_LEVEL : NON_MURDERER_FOOD_LEVEL;
+    }
+
+    public void enforceHungerLock(Player player) {
+        if (player == null) {
+            return;
+        }
+        int foodLevel = getLockedFoodLevel(player.getUniqueId());
+        if (foodLevel < 0) {
+            return;
+        }
+        player.setFoodLevel(foodLevel);
+        player.setSaturation(0f);
+        player.setExhaustion(0f);
+        player.sendHealthUpdate(player.getHealth(), foodLevel, 0f);
     }
 
     public void removeAlive(UUID playerId) {

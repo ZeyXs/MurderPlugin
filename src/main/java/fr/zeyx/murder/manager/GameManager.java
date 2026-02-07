@@ -18,7 +18,7 @@ public class GameManager {
         this.arenaManager = new ArenaManager(configurationManager.loadArenas());
         this.setupWizardManager = new SetupWizardManager(this);
         this.scoreboardManager = new ScoreboardManager();
-        this.secretIdentityManager = new SecretIdentityManager(configurationManager);
+        this.secretIdentityManager = new SecretIdentityManager(configurationManager, arenaManager);
         this.corpseManager = new CorpseManager(MurderPlugin.getInstance());
         registerListeners();
     }

@@ -60,10 +60,8 @@ public abstract class PlayingArenaState extends ArenaState {
         }
         String name = player.getName();
         if (useSecretIdentityInChat()) {
-            String identity = gameManager.getSecretIdentityManager().getCurrentIdentityName(player.getUniqueId());
-            if (identity != null && !identity.isBlank()) {
-                name = identity;
-            }
+            name = gameManager.getSecretIdentityManager().getColoredName(player);
+            event.setMessage(gameManager.getSecretIdentityManager().colorizeIdentityMentions(arena.getActivePlayers(), event.getMessage(), ChatColor.GRAY));
         }
         event.setFormat(ChatColor.translateAlternateColorCodes('&', "&f" + name + " &8• &7%2$s"));
     }
@@ -116,12 +114,12 @@ public abstract class PlayingArenaState extends ArenaState {
         }
     }
 
-    @EventHandler
+    /*@EventHandler
     public void onFoodChange(FoodLevelChangeEvent event) {
         if (event.getEntity() instanceof Player player && shouldCancelFor(player)) {
             event.setCancelled(true);
         }
-    }
+    }*/
 
     @EventHandler
     public void onDrop(PlayerDropItemEvent event) {

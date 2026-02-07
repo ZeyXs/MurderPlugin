@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 public class ActiveArenaTask extends BukkitRunnable {
@@ -25,13 +26,19 @@ public class ActiveArenaTask extends BukkitRunnable {
 
     @Override
     public void run() {
+        for (UUID playerId : new ArrayList<>(session.getAlivePlayers())) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null) {
+                session.enforceHungerLock(player);
+            }
+        }
+
         if (session.getAlivePlayers().size() <= 1) {
             if (session.getAlivePlayers().isEmpty()) {
                 arena.setArenaSate(new WaitingArenaState(gameManager, arena));
             } else {
                 cancel();
 
-                // TODO: Win system
                 session.endGame();
 
                 MurderPlugin.getInstance().getServer().getScheduler().runTaskLater(MurderPlugin.getInstance(), endGameTask -> {

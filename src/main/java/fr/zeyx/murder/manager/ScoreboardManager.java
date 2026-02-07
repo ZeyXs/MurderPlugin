@@ -57,7 +57,7 @@ public class ScoreboardManager implements Listener {
                 safeRoleLine,
                 " ",
                 "&6&lIdentity",
-                "&f" + safeIdentityName,
+                safeIdentityName,
                 "  ",
                 "&bplay.server.net"
         ));
