@@ -13,9 +13,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -166,47 +163,6 @@ public class GameSession {
         return false;
     }
 
-    public boolean handleDamageByEntity(EntityDamageByEntityEvent event) {
-        if (event == null) {
-            return false;
-        }
-        Player damager = resolveDamager(event);
-        Player victim = event.getEntity() instanceof Player damagedPlayer ? damagedPlayer : null;
-        boolean victimInArena = victim != null && arena.isPlaying(victim);
-
-        if (damager == null) {
-            return victimInArena;
-        }
-        if (arena.isPlaying(damager)) {
-            return true;
-        }
-        return victimInArena;
-    }
-
-    public boolean handleDamage(EntityDamageEvent event) {
-        if (event == null) {
-            return false;
-        }
-        if (!(event.getEntity() instanceof Player victim) || !arena.isPlaying(victim)) {
-            return false;
-        }
-        if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
-            victim.setFallDistance(0f);
-            return true;
-        }
-        if (event instanceof EntityDamageByEntityEvent) {
-            return true;
-        }
-        if (event.isCancelled() || !isAlive(victim.getUniqueId())) {
-            return true;
-        }
-        if (event.getFinalDamage() < victim.getHealth()) {
-            return false;
-        }
-        eliminatePlayer(victim, resolveDamager(event));
-        return true;
-    }
-
     public boolean eliminatePlayer(Player victim) {
         return eliminatePlayer(victim, null);
     }
@@ -309,20 +265,6 @@ public class GameSession {
 
     private boolean isAlive(UUID playerId) {
         return alivePlayers.contains(playerId);
-    }
-
-    private Player resolveDamager(EntityDamageEvent event) {
-        if (!(event instanceof EntityDamageByEntityEvent byEntityEvent)) {
-            return null;
-        }
-        if (byEntityEvent.getDamager() instanceof Player damager) {
-            return damager;
-        }
-        if (byEntityEvent.getDamager() instanceof Projectile projectile
-                && projectile.getShooter() instanceof Player shooter) {
-            return shooter;
-        }
-        return null;
     }
 
     private void updateAliveCountDisplays() {

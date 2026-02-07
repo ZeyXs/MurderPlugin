@@ -5,6 +5,7 @@ import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.task.ActiveArenaTask;
 import fr.zeyx.murder.game.GameSession;
+import fr.zeyx.murder.game.session.SessionTabCompletionService;
 import fr.zeyx.murder.manager.GameManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -12,23 +13,17 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerChatTabCompleteEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-
 public class ActiveArenaState extends PlayingArenaState {
 
     private final GameManager gameManager;
     private final Arena arena;
+    private final SessionTabCompletionService tabCompletionService;
     private ActiveArenaTask activeArenaTask;
     private GameSession session;
 
@@ -36,6 +31,7 @@ public class ActiveArenaState extends PlayingArenaState {
         super(gameManager, arena);
         this.gameManager = gameManager;
         this.arena = arena;
+        this.tabCompletionService = new SessionTabCompletionService(gameManager.getSecretIdentityManager());
     }
 
     @Override
@@ -107,26 +103,15 @@ public class ActiveArenaState extends PlayingArenaState {
 
     @Override
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onDamageByEntity(EntityDamageByEntityEvent event) {
-        if (session == null) {
-            return;
-        }
-        if (session.handleDamageByEntity(event)) {
-            event.setCancelled(true);
-            event.setDamage(0.0);
-        }
-    }
-
-    @Override
-    @EventHandler(priority = EventPriority.MONITOR)
     public void onDamage(EntityDamageEvent event) {
-        if (session == null) {
+        if (!(event.getEntity() instanceof Player player) || !arena.isPlaying(player)) {
             return;
         }
-        if (session.handleDamage(event)) {
-            event.setCancelled(true);
-            event.setDamage(0.0);
+        if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
+            player.setFallDistance(0f);
         }
+        event.setCancelled(true);
+        event.setDamage(0.0);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -134,9 +119,7 @@ public class ActiveArenaState extends PlayingArenaState {
         if (session == null || !arena.isPlaying(event.getPlayer())) {
             return;
         }
-        List<String> suggestions = buildIdentityCompletions(event.getLastToken());
-        event.getTabCompletions().clear();
-        event.getTabCompletions().addAll(suggestions);
+        tabCompletionService.handlePlayerChatTabComplete(event, arena);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -144,33 +127,6 @@ public class ActiveArenaState extends PlayingArenaState {
         if (session == null || event.isCommand() || !(event.getSender() instanceof Player player) || !arena.isPlaying(player)) {
             return;
         }
-        event.setCompletions(buildIdentityCompletions(extractLastToken(event.getBuffer())));
-        event.setHandled(true);
-    }
-
-    private List<String> buildIdentityCompletions(String token) {
-        String normalizedPrefix = token == null ? "" : token.trim().toLowerCase(Locale.ROOT);
-        LinkedHashSet<String> suggestions = new LinkedHashSet<>();
-        for (UUID playerId : new ArrayList<>(arena.getActivePlayers())) {
-            String identity = gameManager.getSecretIdentityManager().getCurrentIdentityName(playerId);
-            if (identity == null || identity.isBlank()) {
-                continue;
-            }
-            if (normalizedPrefix.isBlank() || identity.toLowerCase(Locale.ROOT).startsWith(normalizedPrefix)) {
-                suggestions.add(identity);
-            }
-        }
-        return new ArrayList<>(suggestions);
-    }
-
-    private String extractLastToken(String buffer) {
-        if (buffer == null || buffer.isBlank()) {
-            return "";
-        }
-        int index = buffer.lastIndexOf(' ');
-        if (index < 0 || index + 1 >= buffer.length()) {
-            return buffer;
-        }
-        return buffer.substring(index + 1);
+        tabCompletionService.handleAsyncTabComplete(event, arena);
     }
 }
