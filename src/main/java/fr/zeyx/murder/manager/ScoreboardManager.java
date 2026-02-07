@@ -63,6 +63,23 @@ public class ScoreboardManager implements Listener {
         ));
     }
 
+    public void showSpectatorBoard(Player player, int timeLeft, int aliveCount, int spectatorCount) {
+        int safeTimeLeft = Math.max(0, timeLeft);
+        int safeAliveCount = Math.max(0, aliveCount);
+        int safeSpectatorCount = Math.max(0, spectatorCount);
+        updateBoard(player, "&c&lMURDER", Arrays.asList(
+                "",
+                "&b&lTime Left",
+                "&7" + safeTimeLeft,
+                "&a&lAlive",
+                "&7" + safeAliveCount,
+                "&c&lWatching",
+                "&7" + safeSpectatorCount,
+                " ",
+                "&bplay.server.net"
+        ));
+    }
+
     public void updateBoard(Player player, String title, List<String> lines) {
         FastBoard board = boards.computeIfAbsent(player.getUniqueId(), key -> new FastBoard(player));
         if (title != null) {

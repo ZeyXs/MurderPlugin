@@ -2,6 +2,8 @@ package fr.zeyx.murder.game;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
+import fr.zeyx.murder.gui.EquipmentMenu;
+import fr.zeyx.murder.gui.ProfileMenu;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
 import fr.zeyx.murder.util.ItemBuilder;
@@ -20,6 +22,7 @@ import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -55,6 +58,11 @@ public class GameSession {
     private static final String MURDERER_BUY_KNIFE_NAME = "&7&lBuy Knife&r &7• Right Click";
     private static final String MURDERER_SWITCH_IDENTITY_NAME = "&7&lSwitch Identity&r &7• Right Click";
     private static final String DETECTIVE_GUN_NAME = "&7&oGun";
+    private static final String SPECTATOR_TELEPORT_SELECTOR_NAME = "&b&lTeleport Selector &r&7• Right Click";
+    private static final String SPECTATOR_VISIBILITY_NAME = "&c&lSpectator Visibility &r&7• Right Click";
+    private static final String SPECTATOR_TARGET_SELECTOR_LEGACY = ChatColor.translateAlternateColorCodes('&', SPECTATOR_TELEPORT_SELECTOR_NAME);
+    private static final String SPECTATOR_VISIBILITY_LEGACY = ChatColor.translateAlternateColorCodes('&', SPECTATOR_VISIBILITY_NAME);
+    private static final int SPECTATOR_TIME_LEFT_SECONDS = 100;
 
     private final GameManager gameManager;
     private final Arena arena;
@@ -63,6 +71,8 @@ public class GameSession {
     private final Map<UUID, Role> roles = new HashMap<>();
     private final Map<UUID, ItemStack[]> chatHotbars = new HashMap<>();
     private final Set<UUID> chatMenuCooldown = new HashSet<>();
+    private final Map<UUID, Boolean> spectatorVisibility = new HashMap<>();
+    private final Map<UUID, Integer> spectatorTargetIndexes = new HashMap<>();
     private UUID murdererId;
     private UUID detectiveId;
     private UUID murdererKillerId;
@@ -75,6 +85,8 @@ public class GameSession {
     public void start() {
         alivePlayers.clear();
         alivePlayers.addAll(arena.getActivePlayers());
+        spectatorVisibility.clear();
+        spectatorTargetIndexes.clear();
         int aliveCount = alivePlayers.size();
 
         assignRoles();
@@ -135,16 +147,23 @@ public class GameSession {
         }
 
         updateChatCompletionsForActivePlayers();
+        refreshPlayerVisibility();
     }
 
     public void endGame() {
         sendRoleRevealMessages();
         sendWinnerMessage();
+        restoreVisibilityForArenaPlayers();
+        spectatorVisibility.clear();
+        spectatorTargetIndexes.clear();
 
         for (UUID playerId : arena.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) continue;
             clearChatCompletions(player);
+            player.removePotionEffect(PotionEffectType.INVISIBILITY);
+            player.setAllowFlight(false);
+            player.setFlying(false);
             player.setGameMode(GameMode.SPECTATOR);
             showNametag(player);
             gameManager.getSecretIdentityManager().resetIdentity(player);
@@ -190,7 +209,14 @@ public class GameSession {
         if (playerId != null && playerId.equals(murdererId) && killerId != null && !killerId.equals(playerId)) {
             murdererKillerId = killerId;
         }
+        if (playerId != null && isSpectator(playerId)) {
+            spectatorVisibility.putIfAbsent(playerId, true);
+            spectatorTargetIndexes.putIfAbsent(playerId, -1);
+        }
         updateChatCompletionsForActivePlayers();
+        updateAliveCountDisplays();
+        updateSpectatorBoards();
+        refreshPlayerVisibility();
     }
 
     public UUID getMurdererId() {
@@ -206,7 +232,7 @@ public class GameSession {
             return false;
         }
         if (!isAlive(player.getUniqueId())) {
-            return true;
+            return handleSpectatorInteract(player, itemName, legacyName);
         }
         if (chatMenuCooldown.contains(player.getUniqueId())) {
             return true;
@@ -297,16 +323,10 @@ public class GameSession {
         gameManager.getCorpseManager().spawnCorpse(victim, victim.getLocation(), victim.getInventory().getChestplate());
 
         clearTransientState(victim);
-        victim.removePotionEffect(PotionEffectType.SPEED);
-        victim.getInventory().clear();
-        victim.getInventory().setArmorContents(new ItemStack[4]);
-        victim.setFireTicks(0);
-        victim.setFallDistance(0f);
-        victim.setGameMode(GameMode.SPECTATOR);
+        prepareSpectator(victim, killer);
 
         UUID killerId = killer == null ? null : killer.getUniqueId();
         removeAlive(victimId, killerId);
-        updateAliveCountDisplays();
         return true;
     }
 
@@ -314,9 +334,16 @@ public class GameSession {
         if (player == null) {
             return;
         }
-        chatHotbars.remove(player.getUniqueId());
-        chatMenuCooldown.remove(player.getUniqueId());
+        UUID playerId = player.getUniqueId();
+        chatHotbars.remove(playerId);
+        chatMenuCooldown.remove(playerId);
+        spectatorVisibility.remove(playerId);
+        spectatorTargetIndexes.remove(playerId);
         clearChatCompletions(player);
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        player.setAllowFlight(false);
+        player.setFlying(false);
+        restoreVisibilityFor(player);
     }
 
     private Location pickSpawnLocation() {
@@ -388,6 +415,71 @@ public class GameSession {
             }
             player.playSound(player.getLocation(), Sound.ENTITY_GHAST_HURT, 1.0f, 1.0f);
         }, 10L);
+    }
+
+    private void prepareSpectator(Player victim, Player killer) {
+        UUID victimId = victim.getUniqueId();
+        spectatorVisibility.put(victimId, true);
+        spectatorTargetIndexes.put(victimId, -1);
+
+        victim.removePotionEffect(PotionEffectType.SPEED);
+        victim.getInventory().clear();
+        victim.getInventory().setArmorContents(new ItemStack[4]);
+        victim.getInventory().setItemInOffHand(new ItemStack(Material.AIR));
+        victim.setFireTicks(0);
+        victim.setFallDistance(0f);
+        victim.setGameMode(GameMode.ADVENTURE);
+        victim.setAllowFlight(true);
+        victim.setFlying(true);
+        victim.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 0, false, false, false));
+        setSpectatorHotbar(victim);
+        showDeathTitle(victim, killer);
+    }
+
+    private void setSpectatorHotbar(Player player) {
+        player.getInventory().setItem(0, new ItemBuilder(Material.COMPASS).setName(ChatUtil.itemComponent(SPECTATOR_TELEPORT_SELECTOR_NAME)).toItemStack());
+        player.getInventory().setItem(3, new ItemBuilder(Material.ENDER_CHEST).setName(arena.SELECT_EQUIPMENT_ITEM).toItemStack());
+
+        ItemStack statsHead = new ItemStack(Material.PLAYER_HEAD);
+        if (statsHead.getItemMeta() instanceof SkullMeta skullMeta) {
+            skullMeta.setOwningPlayer(player);
+            skullMeta.displayName(arena.VIEW_STATS_ITEM);
+            statsHead.setItemMeta(skullMeta);
+        }
+        player.getInventory().setItem(5, statsHead);
+        player.getInventory().setItem(7, new ItemBuilder(Material.REDSTONE).setName(ChatUtil.itemComponent(SPECTATOR_VISIBILITY_NAME)).toItemStack());
+        player.getInventory().setItem(8, new ItemBuilder(Material.CLOCK).setName(arena.LEAVE_ITEM).toItemStack());
+        player.getInventory().setHeldItemSlot(0);
+    }
+
+    private void showDeathTitle(Player victim, Player killer) {
+        String killerName = resolveKillerIdentityName(killer);
+        if ((killerName == null || killerName.isBlank()) && victim != null) {
+            killerName = resolveIdentityDisplayName(victim.getUniqueId());
+        }
+        if (killerName == null || killerName.isBlank()) {
+            killerName = "&fUnknown";
+        }
+        victim.showTitle(Title.title(
+                ChatUtil.component("&cYOU DIED!"),
+                ChatUtil.component("&cKilled by: " + killerName),
+                Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofMillis(500))
+        ));
+    }
+
+    private String resolveKillerIdentityName(Player killer) {
+        if (killer == null) {
+            return null;
+        }
+        String identityName = gameManager.getSecretIdentityManager().getCurrentIdentityDisplayName(killer.getUniqueId());
+        if (identityName != null && !identityName.isBlank()) {
+            return identityName;
+        }
+        String coloredName = gameManager.getSecretIdentityManager().getColoredName(killer);
+        if (coloredName != null && !coloredName.isBlank()) {
+            return coloredName;
+        }
+        return "&f" + killer.getName();
     }
 
     public static void hideNametag(Player player) {
@@ -463,6 +555,63 @@ public class GameSession {
         meta.setUnbreakable(true);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
         item.setItemMeta(meta);
+    }
+
+    private boolean handleSpectatorInteract(Player player, Component itemName, String legacyName) {
+        if (itemName.equals(arena.LEAVE_ITEM)) {
+            arena.removePlayer(player, gameManager);
+            return true;
+        }
+        if (itemName.equals(arena.SELECT_EQUIPMENT_ITEM)) {
+            new EquipmentMenu().open(player);
+            return true;
+        }
+        if (itemName.equals(arena.VIEW_STATS_ITEM)) {
+            new ProfileMenu().open(player);
+            return true;
+        }
+        if (SPECTATOR_TARGET_SELECTOR_LEGACY.equals(legacyName)) {
+            selectNextTarget(player);
+            return true;
+        }
+        if (SPECTATOR_VISIBILITY_LEGACY.equals(legacyName)) {
+            toggleSpectatorVisibility(player);
+            return true;
+        }
+        return true;
+    }
+
+    private void selectNextTarget(Player spectator) {
+        List<Player> targets = new ArrayList<>();
+        for (UUID playerId : alivePlayers) {
+            Player target = Bukkit.getPlayer(playerId);
+            if (target != null) {
+                targets.add(target);
+            }
+        }
+        if (targets.isEmpty()) {
+            spectator.sendMessage(ChatUtil.prefixed("&cNo alive players to watch."));
+            return;
+        }
+        UUID spectatorId = spectator.getUniqueId();
+        int nextIndex = spectatorTargetIndexes.getOrDefault(spectatorId, -1) + 1;
+        if (nextIndex >= targets.size()) {
+            nextIndex = 0;
+        }
+        spectatorTargetIndexes.put(spectatorId, nextIndex);
+        Player target = targets.get(nextIndex);
+        spectator.teleport(target.getLocation());
+        spectator.sendMessage(ChatUtil.prefixed("&7Now watching " + resolveChatName(target) + "&7."));
+    }
+
+    private void toggleSpectatorVisibility(Player spectator) {
+        UUID spectatorId = spectator.getUniqueId();
+        boolean enabled = !spectatorVisibility.getOrDefault(spectatorId, true);
+        spectatorVisibility.put(spectatorId, enabled);
+        applyVisibilityForViewer(spectator);
+        spectator.sendMessage(ChatUtil.prefixed(enabled
+                ? "&7Spectators are now &avisible&7."
+                : "&7Spectators are now &chidden&7."));
     }
 
     private void openChatMenu(Player player) {
@@ -584,6 +733,91 @@ public class GameSession {
             }
             player.setLevel(0);
             player.setExp(0.0f);
+        }
+    }
+
+    private void updateSpectatorBoards() {
+        int aliveCount = alivePlayers.size();
+        int spectatorCount = getSpectatorCount();
+        for (UUID playerId : arena.getActivePlayers()) {
+            if (!isSpectator(playerId)) {
+                continue;
+            }
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null) {
+                continue;
+            }
+            gameManager.getScoreboardManager().showSpectatorBoard(player, SPECTATOR_TIME_LEFT_SECONDS, aliveCount, spectatorCount);
+        }
+    }
+
+    private int getSpectatorCount() {
+        int count = 0;
+        for (UUID playerId : arena.getActivePlayers()) {
+            if (isSpectator(playerId)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean isSpectator(UUID playerId) {
+        return playerId != null && arena.getActivePlayers().contains(playerId) && !alivePlayers.contains(playerId);
+    }
+
+    private void refreshPlayerVisibility() {
+        for (UUID viewerId : arena.getActivePlayers()) {
+            Player viewer = Bukkit.getPlayer(viewerId);
+            if (viewer != null) {
+                applyVisibilityForViewer(viewer);
+            }
+        }
+    }
+
+    private void applyVisibilityForViewer(Player viewer) {
+        boolean viewerAlive = isAlive(viewer.getUniqueId());
+        boolean showSpectators = spectatorVisibility.getOrDefault(viewer.getUniqueId(), true);
+        for (UUID targetId : arena.getActivePlayers()) {
+            if (viewer.getUniqueId().equals(targetId)) {
+                continue;
+            }
+            Player target = Bukkit.getPlayer(targetId);
+            if (target == null) {
+                continue;
+            }
+            boolean targetAlive = isAlive(targetId);
+            if (viewerAlive) {
+                if (targetAlive) {
+                    viewer.showPlayer(MurderPlugin.getInstance(), target);
+                } else {
+                    viewer.hidePlayer(MurderPlugin.getInstance(), target);
+                }
+                continue;
+            }
+            if (targetAlive || showSpectators) {
+                viewer.showPlayer(MurderPlugin.getInstance(), target);
+            } else {
+                viewer.hidePlayer(MurderPlugin.getInstance(), target);
+            }
+        }
+    }
+
+    private void restoreVisibilityForArenaPlayers() {
+        for (UUID playerId : arena.getActivePlayers()) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null) {
+                restoreVisibilityFor(player);
+            }
+        }
+    }
+
+    private void restoreVisibilityFor(Player player) {
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            if (onlinePlayer.equals(player)) {
+                continue;
+            }
+            onlinePlayer.showPlayer(MurderPlugin.getInstance(), player);
+            player.showPlayer(MurderPlugin.getInstance(), onlinePlayer);
         }
     }
 
