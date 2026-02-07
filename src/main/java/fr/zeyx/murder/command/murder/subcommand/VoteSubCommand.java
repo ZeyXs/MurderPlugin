@@ -1,4 +1,4 @@
-package fr.zeyx.murder.command.murder;
+package fr.zeyx.murder.command.murder.subcommand;
 
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.command.CommandArgs;

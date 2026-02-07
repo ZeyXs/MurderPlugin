@@ -59,6 +59,7 @@ public class GameSession {
     public void start() {
         alivePlayers.clear();
         alivePlayers.addAll(arena.getActivePlayers());
+        int aliveCount = alivePlayers.size();
 
         assignRoles();
         applySecretIdentities();
@@ -78,12 +79,19 @@ public class GameSession {
                 player.getInventory().setItem(0, knife);
                 player.getInventory().setItem(3, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_BUY_KNIFE_NAME)).toItemStack());
                 player.getInventory().setItem(4, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_SWITCH_IDENTITY_NAME)).toItemStack());
+                player.setFoodLevel(8);
             } else if (role == Role.DETECTIVE) {
                 ItemStack gun = new ItemBuilder(Material.WOODEN_HOE).setName(ChatUtil.itemComponent(DETECTIVE_GUN_NAME, true)).toItemStack();
                 applyInstantAttackSpeed(gun);
                 player.getInventory().setItem(0, gun);
+                player.setFoodLevel(6);
+            } else {
+                player.setFoodLevel(6);
             }
             player.getInventory().setItem(8, QuickChatMenu.buildChatBook());
+            player.getInventory().setHeldItemSlot(8);
+            player.setLevel(aliveCount);
+            player.setExp(1.0f);
             String roleLine = switch (roles.get(playerId)) {
                 case MURDERER -> "&4Murderer";
                 case DETECTIVE -> "&1Detective";

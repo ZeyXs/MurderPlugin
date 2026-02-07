@@ -2,7 +2,6 @@ package fr.zeyx.murder.arena.state;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
-import fr.zeyx.murder.arena.ArenaState;
 import fr.zeyx.murder.arena.task.ActiveArenaTask;
 import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.QuickChatMenu;
@@ -13,17 +12,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityDropItemEvent;
-import org.bukkit.event.entity.FoodLevelChangeEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.block.Action;
-import org.bukkit.entity.Projectile;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
@@ -35,7 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class ActiveArenaState extends ArenaState {
+public class ActiveArenaState extends PlayingArenaState {
 
     private final GameManager gameManager;
     private final Arena arena;
@@ -45,6 +36,7 @@ public class ActiveArenaState extends ArenaState {
     private final Set<UUID> chatMenuCooldown = new HashSet<>();
 
     public ActiveArenaState(GameManager gameManager, Arena arena) {
+        super(gameManager, arena);
         this.gameManager = gameManager;
         this.arena = arena;
     }
@@ -72,34 +64,16 @@ public class ActiveArenaState extends ArenaState {
         return session;
     }
 
-    @EventHandler
-    public void onDamage(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Player player) {
-            if (arena.isPlaying(player)) {
-                event.setCancelled(true);
-            }
-        }
+    @Override
+    protected boolean useSecretIdentityInChat() {
+        return true;
     }
 
-    @EventHandler
-    public void onDamageByEntity(EntityDamageByEntityEvent event) {
-        if (event.getDamager() instanceof Player damager && arena.isPlaying(damager)) {
-            event.setCancelled(true);
-            return;
-        }
-        if (event.getDamager() instanceof Projectile projectile) {
-            if (projectile.getShooter() instanceof Player shooter && arena.isPlaying(shooter)) {
-                event.setCancelled(true);
-            }
-        }
-    }
-
+    @Override
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        super.onQuit(event);
         Player player = event.getPlayer();
-        if (arena.isPlaying(player)) {
-            arena.removePlayer(player, gameManager);
-        }
         chatHotbars.remove(player.getUniqueId());
         chatMenuCooldown.remove(player.getUniqueId());
     }
@@ -146,37 +120,6 @@ public class ActiveArenaState extends ArenaState {
         }
     }
 
-    @EventHandler
-    public void onBlockBreak(BlockBreakEvent event) {
-        Player player = event.getPlayer();
-        if (arena.isPlaying(player)) event.setCancelled(true);
-    }
-
-    @EventHandler
-    public void onBlockPlace(BlockPlaceEvent event) {
-        Player player = event.getPlayer();
-        if (arena.isPlaying(player)) event.setCancelled(true);
-    }
-
-    @EventHandler
-    public void onFoodChange(FoodLevelChangeEvent event) {
-        Player player = (Player) event.getEntity();
-        if (arena.isPlaying(player)) event.setCancelled(true);
-    }
-
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent event) {
-        Player player = (Player) event.getWhoClicked();
-        if (arena.isPlaying(player)) event.setCancelled(true);
-    }
-
-    @EventHandler
-    public void onDrop(EntityDropItemEvent event) {
-        if (event.getEntity() instanceof Player player) {
-            if (arena.isPlaying(player)) event.setCancelled(true);
-        }
-    }
-
     private void openChatMenu(Player player) {
         UUID playerId = player.getUniqueId();
         if (chatHotbars.containsKey(playerId)) {
@@ -203,6 +146,7 @@ public class ActiveArenaState extends ArenaState {
         for (int i = 0; i < 9; i++) {
             player.getInventory().setItem(i, saved[i]);
         }
+        player.getInventory().setHeldItemSlot(8);
         applyChatMenuCooldown(playerId);
     }
 

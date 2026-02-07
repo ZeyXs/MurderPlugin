@@ -4,6 +4,7 @@ import fr.zeyx.murder.command.CommandSenderSubCommand;
 import fr.zeyx.murder.command.CommandResult;
 import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.command.SubCommand;
+import fr.zeyx.murder.command.murder.subcommand.*;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.command.Command;
