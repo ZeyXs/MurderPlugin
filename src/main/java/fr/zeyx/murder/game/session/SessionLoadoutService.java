@@ -1,0 +1,170 @@
+package fr.zeyx.murder.game.session;
+
+import fr.zeyx.murder.MurderPlugin;
+import fr.zeyx.murder.game.QuickChatMenu;
+import fr.zeyx.murder.game.Role;
+import fr.zeyx.murder.manager.GameManager;
+import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.ItemBuilder;
+import net.kyori.adventure.title.Title;
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.NamespacedKey;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+
+import java.time.Duration;
+
+public class SessionLoadoutService {
+
+    private static final int MURDERER_FOOD_LEVEL = 8;
+    private static final int NON_MURDERER_FOOD_LEVEL = 6;
+
+    private static final String MURDERER_KNIFE_NAME = "&7&oKnife";
+    private static final String MURDERER_BUY_KNIFE_NAME = "&7&lBuy Knife&r &7• Right Click";
+    private static final String MURDERER_SWITCH_IDENTITY_NAME = "&7&lSwitch Identity&r &7• Right Click";
+    private static final String DETECTIVE_GUN_NAME = "&7&oGun";
+
+    private final GameManager gameManager;
+
+    public SessionLoadoutService(GameManager gameManager) {
+        this.gameManager = gameManager;
+    }
+
+    public int getLockedFoodLevel(Role role) {
+        if (role == null) {
+            return -1;
+        }
+        return role == Role.MURDERER ? MURDERER_FOOD_LEVEL : NON_MURDERER_FOOD_LEVEL;
+    }
+
+    public void enforceHungerLock(Player player, Role role) {
+        if (player == null || role == null) {
+            return;
+        }
+        int foodLevel = getLockedFoodLevel(role);
+        if (foodLevel < 0) {
+            return;
+        }
+        player.setFoodLevel(foodLevel);
+        player.setSaturation(0f);
+        player.setExhaustion(0f);
+        player.sendHealthUpdate(player.getHealth(), foodLevel, 0f);
+    }
+
+    public void preparePlayerForRound(Player player, Role role, int aliveCount) {
+        if (player == null || role == null) {
+            return;
+        }
+        player.getInventory().clear();
+        player.getInventory().setItemInOffHand(new ItemStack(Material.AIR));
+        enforceHungerLock(player, role);
+
+        if (role == Role.MURDERER) {
+            ItemStack knife = new ItemBuilder(Material.WOODEN_SWORD).setName(ChatUtil.itemComponent(MURDERER_KNIFE_NAME, true)).toItemStack();
+            applyInstantAttackSpeed(knife);
+            player.getInventory().setItem(0, knife);
+            player.getInventory().setItem(3, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_BUY_KNIFE_NAME)).toItemStack());
+            player.getInventory().setItem(4, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_SWITCH_IDENTITY_NAME)).toItemStack());
+        } else if (role == Role.DETECTIVE) {
+            ItemStack gun = new ItemBuilder(Material.WOODEN_HOE).setName(ChatUtil.itemComponent(DETECTIVE_GUN_NAME, true)).toItemStack();
+            applyInstantAttackSpeed(gun);
+            player.getInventory().setItem(0, gun);
+        }
+
+        player.getInventory().setItem(8, QuickChatMenu.buildChatBook());
+        applyIdentityChestplate(player);
+        player.getInventory().setHeldItemSlot(8);
+        player.setLevel(aliveCount);
+        player.setExp(1.0f);
+
+        String roleLine = switch (role) {
+            case MURDERER -> "&4Murderer";
+            case DETECTIVE -> "&1Detective";
+            case BYSTANDER -> "&bBystander";
+        };
+        String identityName = gameManager.getSecretIdentityManager().getCurrentIdentityDisplayName(player.getUniqueId());
+        if (identityName == null || identityName.isBlank()) {
+            identityName = gameManager.getSecretIdentityManager().getColoredName(player);
+        }
+        gameManager.getScoreboardManager().showGameBoard(player, roleLine, identityName);
+        SessionNametagService.hide(player);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 5, 0, false, false, false));
+        showRoleTitle(player, role);
+    }
+
+    private void applyIdentityChestplate(Player player) {
+        Color identityColor = gameManager.getSecretIdentityManager().getCurrentIdentityLeatherColor(player.getUniqueId());
+        if (identityColor == null) {
+            return;
+        }
+        ItemStack chestplate = new ItemStack(Material.LEATHER_CHESTPLATE);
+        if (chestplate.getItemMeta() instanceof LeatherArmorMeta chestplateMeta) {
+            chestplateMeta.setColor(identityColor);
+            chestplateMeta.setUnbreakable(true);
+            chestplateMeta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE);
+            chestplate.setItemMeta(chestplateMeta);
+        }
+        player.getInventory().setChestplate(chestplate);
+    }
+
+    private void showRoleTitle(Player player, Role role) {
+        Title title = switch (role) {
+            case MURDERER -> Title.title(
+                    ChatUtil.component("&c&lMurderer      "),
+                    ChatUtil.component("      &4Don't get caught"),
+                    Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
+            );
+            case DETECTIVE -> Title.title(
+                    ChatUtil.component("&3&lBystander      "),
+                    ChatUtil.component("       &dWith a secret weapon"),
+                    Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
+            );
+            case BYSTANDER -> Title.title(
+                    ChatUtil.component("&3&lBystander       "),
+                    ChatUtil.component("      &3Kill the murderer"),
+                    Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
+            );
+        };
+        player.showTitle(title);
+        Bukkit.getScheduler().runTaskLater(MurderPlugin.getInstance(), task -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            player.playSound(player.getLocation(), Sound.ENTITY_GHAST_HURT, 1.0f, 1.0f);
+        }, 10L);
+    }
+
+    private void applyInstantAttackSpeed(ItemStack item) {
+        if (item == null) {
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        NamespacedKey key = new NamespacedKey(MurderPlugin.getInstance(), "instant_attack_speed");
+        meta.addAttributeModifier(
+                Attribute.ATTACK_SPEED,
+                new AttributeModifier(
+                        key,
+                        1000.0,
+                        AttributeModifier.Operation.ADD_NUMBER,
+                        EquipmentSlotGroup.HAND
+                )
+        );
+        meta.setUnbreakable(true);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+        item.setItemMeta(meta);
+    }
+}
