@@ -17,6 +17,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 
 public abstract class PlayingArenaState extends ArenaState {
 
@@ -123,6 +124,13 @@ public abstract class PlayingArenaState extends ArenaState {
 
     @EventHandler
     public void onDrop(PlayerDropItemEvent event) {
+        if (shouldCancelFor(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onSwapHandItems(PlayerSwapHandItemsEvent event) {
         if (shouldCancelFor(event.getPlayer())) {
             event.setCancelled(true);
         }

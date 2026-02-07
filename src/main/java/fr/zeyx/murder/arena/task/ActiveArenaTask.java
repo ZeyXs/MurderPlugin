@@ -33,7 +33,7 @@ public class ActiveArenaTask extends BukkitRunnable {
             }
         }
 
-        if (session.getAlivePlayers().size() <= 1) {
+        if (session.isGameOver()) {
             cancel();
             session.endGame();
 

@@ -86,7 +86,7 @@ public class DebugSubCommand implements PlayerSubCommand {
                 player.sendMessage(ChatUtil.prefixed("&cYou must be in an active game to use this command."));
                 return CommandResult.FAILURE;
             }
-            if (!activeArenaState.eliminatePlayer(player)) {
+            if (activeArenaState.getSession() == null || !activeArenaState.getSession().eliminatePlayer(player)) {
                 player.sendMessage(ChatUtil.prefixed("&cYou are already dead."));
                 return CommandResult.FAILURE;
             }

@@ -107,7 +107,7 @@ public class MapVoteSession {
             return;
         }
         if (locked && selectedArena != null) {
-            player.sendMessage(ChatUtil.prefixed("&7Map selected: &e" + selectedArena.getDisplayName()));
+            player.sendMessage(ChatUtil.prefixed("&7You are now playing on &a" + selectedArena.getDisplayName()));
             return;
         }
 

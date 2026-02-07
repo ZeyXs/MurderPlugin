@@ -4,6 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.state.ActiveArenaState;
+import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.util.ChatUtil;
 import fr.zeyx.murder.util.MojangUtil;
@@ -154,7 +155,7 @@ public class SecretIdentityManager implements Listener {
         originalListNames.putIfAbsent(player.getUniqueId(), player.playerListName() == null ? Component.text(player.getName()) : player.playerListName());
         originalProfiles.putIfAbsent(player.getUniqueId(), player.getPlayerProfile().clone());
         currentIdentities.put(playerId, username);
-        player.playerListName(ChatUtil.component(colorizeName(playerId, username)));
+        player.playerListName(ChatUtil.component(formatTabListName(playerId, username)));
 
         PlayerProfile lookup = Bukkit.createProfile(username);
         lookup.update().whenComplete((resolved, throwable) -> {
@@ -338,6 +339,7 @@ public class SecretIdentityManager implements Listener {
                 return;
             }
             PlayerProfile targetProfile = player.getPlayerProfile().clone();
+            targetProfile.setName(username);
             PlayerTextures targetTextures = targetProfile.getTextures();
             if (sourceTextures.getSkin() != null) {
                 targetTextures.setSkin(sourceTextures.getSkin(), sourceTextures.getSkinModel());
@@ -350,8 +352,9 @@ public class SecretIdentityManager implements Listener {
             float saturation = player.getSaturation();
             float exhaustion = player.getExhaustion();
             player.setPlayerProfile(targetProfile);
+            GameSession.hideNametag(player);
             scheduleHungerRestore(player, foodLevel, saturation, exhaustion);
-            player.playerListName(ChatUtil.component(colorizeName(player.getUniqueId(), username)));
+            player.playerListName(ChatUtil.component(formatTabListName(player.getUniqueId(), username)));
             currentIdentities.put(player.getUniqueId(), username);
         });
     }
@@ -366,13 +369,15 @@ public class SecretIdentityManager implements Listener {
             }
 
             PlayerProfile targetProfile = player.getPlayerProfile().clone();
+            targetProfile.setName(username);
             targetProfile.setProperty(new ProfileProperty("textures", textures.getValue(), textures.getSignature()));
             int foodLevel = player.getFoodLevel();
             float saturation = player.getSaturation();
             float exhaustion = player.getExhaustion();
             player.setPlayerProfile(targetProfile);
+            GameSession.hideNametag(player);
             scheduleHungerRestore(player, foodLevel, saturation, exhaustion);
-            player.playerListName(ChatUtil.component(colorizeName(player.getUniqueId(), username)));
+            player.playerListName(ChatUtil.component(formatTabListName(player.getUniqueId(), username)));
             currentIdentities.put(player.getUniqueId(), username);
         });
     }
@@ -391,7 +396,7 @@ public class SecretIdentityManager implements Listener {
             UUID playerId = player.getUniqueId();
             currentIdentityColors.put(playerId, palette.get(i % palette.size()));
             originalListNames.putIfAbsent(playerId, player.playerListName() == null ? Component.text(player.getName()) : player.playerListName());
-            player.playerListName(ChatUtil.component(colorizeName(playerId, player.getName())));
+            player.playerListName(ChatUtil.component(formatTabListName(playerId, player.getName())));
         }
     }
 
@@ -417,6 +422,10 @@ public class SecretIdentityManager implements Listener {
     private String colorizeName(UUID playerId, String name) {
         String baseName = name == null ? "" : name;
         return resolveColor(playerId) + baseName;
+    }
+
+    private String formatTabListName(UUID playerId, String baseName) {
+        return colorizeName(playerId, baseName) + " &f(YOU)";
     }
 
     private Color resolveLeatherColor(ChatColor color) {

@@ -129,7 +129,10 @@ public class Arena {
     public void removePlayer(Player player, GameManager gameManager) {
         if (!(activePlayers.remove(player.getUniqueId()))) return;
         if (arenaState instanceof ActiveArenaState activeArenaState) {
-            activeArenaState.clearChatMenu(player);
+            GameSession session = activeArenaState.getSession();
+            if (session != null) {
+                session.clearTransientState(player);
+            }
         }
         if (gameManager.getArenaManager().getVoteSession() != null) {
             gameManager.getArenaManager().getVoteSession().removeVote(player.getUniqueId());
