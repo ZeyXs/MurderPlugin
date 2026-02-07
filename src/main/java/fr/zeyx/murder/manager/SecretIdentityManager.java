@@ -43,7 +43,6 @@ public class SecretIdentityManager implements Listener {
             ChatColor.DARK_RED,
             ChatColor.DARK_PURPLE,
             ChatColor.GOLD,
-            ChatColor.GRAY,
             ChatColor.DARK_GRAY,
             ChatColor.BLUE,
             ChatColor.GREEN,
