@@ -29,7 +29,10 @@ public class GameSession {
     private final GameManager gameManager;
     private final Arena arena;
     private final List<UUID> alivePlayers = new ArrayList<>();
+    private final List<UUID> roundParticipants = new ArrayList<>();
     private final Map<UUID, Role> roles = new HashMap<>();
+    private final Map<UUID, String> realPlayerNames = new HashMap<>();
+    private final Map<UUID, String> identityDisplayNames = new HashMap<>();
 
     private final SessionQuickChatService quickChatService;
     private final SessionIdentityService identityService;
@@ -56,16 +59,27 @@ public class GameSession {
         );
         this.endGameMessenger = new SessionEndGameMessenger(
                 arena,
+                roundParticipants,
                 alivePlayers,
                 roles,
-                identityService::resolveIdentityDisplayName,
-                identityService::resolveRealPlayerName
+                this::resolveIdentityDisplayName,
+                this::resolveRealPlayerName
         );
     }
 
     public void start() {
         alivePlayers.clear();
         alivePlayers.addAll(arena.getActivePlayers());
+        roundParticipants.clear();
+        roundParticipants.addAll(alivePlayers);
+        realPlayerNames.clear();
+        identityDisplayNames.clear();
+        for (UUID playerId : roundParticipants) {
+            String realName = identityService.resolveRealPlayerName(playerId);
+            if (realName != null && !realName.isBlank()) {
+                realPlayerNames.put(playerId, realName);
+            }
+        }
         spectatorService.clearState();
 
         assignRoles();
@@ -82,6 +96,7 @@ public class GameSession {
                 player.teleport(spawn);
             }
             loadoutService.preparePlayerForRound(player, roles.get(playerId), aliveCount);
+            cacheIdentityDisplayName(playerId);
         }
 
         updateChatCompletionsForActivePlayers();
@@ -128,6 +143,7 @@ public class GameSession {
 
     public void removeAlive(UUID playerId, UUID killerId) {
         alivePlayers.remove(playerId);
+        cacheIdentityDisplayName(playerId);
         if (playerId != null && playerId.equals(murdererId) && killerId != null && !killerId.equals(playerId)) {
             murdererKillerId = killerId;
         }
@@ -176,6 +192,7 @@ public class GameSession {
             return false;
         }
 
+        cacheIdentityDisplayName(victimId);
         gameManager.getCorpseManager().spawnCorpse(victim, victim.getLocation(), victim.getInventory().getChestplate());
         clearTransientState(victim);
         spectatorService.prepareSpectator(victim, killer);
@@ -192,6 +209,30 @@ public class GameSession {
         quickChatService.clearTransientState(player);
         spectatorService.clearTransientState(player);
         clearChatCompletions(player);
+    }
+
+    public void beforeArenaRemoval(Player player) {
+        if (player == null) {
+            return;
+        }
+        String realName = realPlayerNames.get(player.getUniqueId());
+        if (realName == null || realName.isBlank()) {
+            realPlayerNames.put(player.getUniqueId(), player.getName());
+        }
+        cacheIdentityDisplayName(player.getUniqueId());
+    }
+
+    public void handlePlayerDisconnect(Player player) {
+        if (player == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        beforeArenaRemoval(player);
+        if (!isAlive(playerId)) {
+            return;
+        }
+        gameManager.getCorpseManager().spawnCorpse(player, player.getLocation(), player.getInventory().getChestplate());
+        removeAlive(playerId, null);
     }
 
     public static void hideNametag(Player player) {
@@ -265,6 +306,53 @@ public class GameSession {
 
     private boolean isAlive(UUID playerId) {
         return alivePlayers.contains(playerId);
+    }
+
+    private void cacheIdentityDisplayName(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        String currentIdentityName = gameManager.getSecretIdentityManager().getCurrentIdentityName(playerId);
+        if (currentIdentityName == null || currentIdentityName.isBlank()) {
+            return;
+        }
+        String identityDisplayName = identityService.resolveIdentityDisplayName(playerId);
+        if (identityDisplayName != null && !identityDisplayName.isBlank()) {
+            identityDisplayNames.put(playerId, identityDisplayName);
+        }
+    }
+
+    private String resolveIdentityDisplayName(UUID playerId) {
+        String currentIdentityName = gameManager.getSecretIdentityManager().getCurrentIdentityName(playerId);
+        if (currentIdentityName != null && !currentIdentityName.isBlank()) {
+            String currentIdentityDisplayName = identityService.resolveIdentityDisplayName(playerId);
+            if (currentIdentityDisplayName != null && !currentIdentityDisplayName.isBlank()) {
+                identityDisplayNames.put(playerId, currentIdentityDisplayName);
+                return currentIdentityDisplayName;
+            }
+        }
+        String cachedIdentityDisplayName = identityDisplayNames.get(playerId);
+        if (cachedIdentityDisplayName != null && !cachedIdentityDisplayName.isBlank()) {
+            return cachedIdentityDisplayName;
+        }
+        String realName = resolveRealPlayerName(playerId);
+        if (realName == null || realName.isBlank()) {
+            return "&fUnknown";
+        }
+        return "&f" + realName;
+    }
+
+    private String resolveRealPlayerName(UUID playerId) {
+        String cachedRealName = realPlayerNames.get(playerId);
+        if (cachedRealName != null && !cachedRealName.isBlank()) {
+            return cachedRealName;
+        }
+        String currentRealName = identityService.resolveRealPlayerName(playerId);
+        if (currentRealName != null && !currentRealName.isBlank()) {
+            realPlayerNames.put(playerId, currentRealName);
+            return currentRealName;
+        }
+        return playerId == null ? "Unknown" : playerId.toString();
     }
 
     private void updateAliveCountDisplays() {

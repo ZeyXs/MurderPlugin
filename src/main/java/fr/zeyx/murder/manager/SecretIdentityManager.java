@@ -338,8 +338,7 @@ public class SecretIdentityManager implements Listener {
             if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
                 return;
             }
-            PlayerProfile targetProfile = player.getPlayerProfile().clone();
-            targetProfile.setName(username);
+            PlayerProfile targetProfile = Bukkit.createProfile(player.getUniqueId(), username);
             PlayerTextures targetTextures = targetProfile.getTextures();
             if (sourceTextures.getSkin() != null) {
                 targetTextures.setSkin(sourceTextures.getSkin(), sourceTextures.getSkinModel());
@@ -368,8 +367,7 @@ public class SecretIdentityManager implements Listener {
                 return;
             }
 
-            PlayerProfile targetProfile = player.getPlayerProfile().clone();
-            targetProfile.setName(username);
+            PlayerProfile targetProfile = Bukkit.createProfile(player.getUniqueId(), username);
             targetProfile.setProperty(new ProfileProperty("textures", textures.getValue(), textures.getSignature()));
             int foodLevel = player.getFoodLevel();
             float saturation = player.getSaturation();
@@ -425,7 +423,7 @@ public class SecretIdentityManager implements Listener {
     }
 
     private String formatTabListName(UUID playerId, String baseName) {
-        return colorizeName(playerId, baseName) + " &f(YOU)";
+        return colorizeName(playerId, baseName);
     }
 
     private Color resolveLeatherColor(ChatColor color) {

@@ -131,6 +131,7 @@ public class Arena {
         if (arenaState instanceof ActiveArenaState activeArenaState) {
             GameSession session = activeArenaState.getSession();
             if (session != null) {
+                session.beforeArenaRemoval(player);
                 session.clearTransientState(player);
             }
         }

@@ -76,7 +76,7 @@ public class ArenaStartingTask extends BukkitRunnable {
         }
         Arena selected = voteSession.lockAndSelect();
         if (selected != null) {
-            lobbyArena.sendArenaMessage("&aMap selected: &e" + selected.getDisplayName());
+            lobbyArena.sendArenaMessage("&7You are now playing on &a" + selected.getDisplayName());
         }
     }
 

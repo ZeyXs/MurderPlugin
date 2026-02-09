@@ -65,10 +65,14 @@ public class ActiveArenaState extends PlayingArenaState {
     @Override
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        super.onQuit(event);
-        if (session != null) {
-            session.clearTransientState(event.getPlayer());
+        Player player = event.getPlayer();
+        if (!arena.isPlaying(player)) {
+            return;
         }
+        if (session != null) {
+            session.handlePlayerDisconnect(player);
+        }
+        arena.removePlayer(player, gameManager);
     }
 
     @EventHandler

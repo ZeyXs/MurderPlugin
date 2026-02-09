@@ -13,17 +13,20 @@ import java.util.function.Function;
 public class SessionEndGameMessenger {
 
     private final Arena arena;
+    private final List<UUID> roundParticipants;
     private final List<UUID> alivePlayers;
     private final Map<UUID, Role> roles;
     private final Function<UUID, String> identityDisplayNameResolver;
     private final Function<UUID, String> realPlayerNameResolver;
 
     public SessionEndGameMessenger(Arena arena,
+                                   List<UUID> roundParticipants,
                                    List<UUID> alivePlayers,
                                    Map<UUID, Role> roles,
                                    Function<UUID, String> identityDisplayNameResolver,
                                    Function<UUID, String> realPlayerNameResolver) {
         this.arena = arena;
+        this.roundParticipants = roundParticipants;
         this.alivePlayers = alivePlayers;
         this.roles = roles;
         this.identityDisplayNameResolver = identityDisplayNameResolver;
@@ -31,7 +34,7 @@ public class SessionEndGameMessenger {
     }
 
     public void sendRoleRevealMessages() {
-        List<UUID> orderedPlayers = new ArrayList<>(arena.getActivePlayers());
+        List<UUID> orderedPlayers = new ArrayList<>(roundParticipants);
         orderedPlayers.sort(Comparator.comparingInt(this::rolePriority));
 
         for (UUID playerId : orderedPlayers) {

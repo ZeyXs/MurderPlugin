@@ -33,8 +33,6 @@ public class SessionLoadoutService {
     private static final String MURDERER_KNIFE_NAME = "&7&oKnife";
     private static final String MURDERER_BUY_KNIFE_NAME = "&7&lBuy Knife&r &7• Right Click";
     private static final String MURDERER_SWITCH_IDENTITY_NAME = "&7&lSwitch Identity&r &7• Right Click";
-    private static final String DETECTIVE_GUN_NAME = "&7&oGun";
-
     private final GameManager gameManager;
 
     public SessionLoadoutService(GameManager gameManager) {
@@ -66,8 +64,8 @@ public class SessionLoadoutService {
         if (player == null || role == null) {
             return;
         }
+
         player.getInventory().clear();
-        player.getInventory().setItemInOffHand(new ItemStack(Material.AIR));
         enforceHungerLock(player, role);
 
         if (role == Role.MURDERER) {
@@ -77,8 +75,7 @@ public class SessionLoadoutService {
             player.getInventory().setItem(3, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_BUY_KNIFE_NAME)).toItemStack());
             player.getInventory().setItem(4, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_SWITCH_IDENTITY_NAME)).toItemStack());
         } else if (role == Role.DETECTIVE) {
-            ItemStack gun = new ItemBuilder(Material.WOODEN_HOE).setName(ChatUtil.itemComponent(DETECTIVE_GUN_NAME, true)).toItemStack();
-            applyInstantAttackSpeed(gun);
+            ItemStack gun = gameManager.getGunManager().createGunItem();
             player.getInventory().setItem(0, gun);
         }
 
@@ -93,13 +90,19 @@ public class SessionLoadoutService {
             case DETECTIVE -> "&1Detective";
             case BYSTANDER -> "&bBystander";
         };
+
         String identityName = gameManager.getSecretIdentityManager().getCurrentIdentityDisplayName(player.getUniqueId());
         if (identityName == null || identityName.isBlank()) {
             identityName = gameManager.getSecretIdentityManager().getColoredName(player);
         }
-        gameManager.getScoreboardManager().showGameBoard(player, roleLine, identityName);
+        if (identityName == null || identityName.isBlank()) {
+            identityName = "&f" + player.getName();
+        }
+
         SessionNametagService.hide(player);
+        gameManager.getScoreboardManager().showGameBoard(player, roleLine, identityName);
         player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 5, 0, false, false, false));
+        player.sendMessage(ChatUtil.component("&7Your secret identity is: " + identityName));
         showRoleTitle(player, role);
     }
 
@@ -112,7 +115,8 @@ public class SessionLoadoutService {
         if (chestplate.getItemMeta() instanceof LeatherArmorMeta chestplateMeta) {
             chestplateMeta.setColor(identityColor);
             chestplateMeta.setUnbreakable(true);
-            chestplateMeta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE);
+            chestplateMeta.itemName(ChatUtil.itemComponent("&aLeather Chestplate"));
+            chestplateMeta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
             chestplate.setItemMeta(chestplateMeta);
         }
         player.getInventory().setChestplate(chestplate);
