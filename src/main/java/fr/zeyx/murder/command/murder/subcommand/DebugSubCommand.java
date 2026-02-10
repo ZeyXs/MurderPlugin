@@ -12,10 +12,8 @@ import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class DebugSubCommand implements PlayerSubCommand {
@@ -96,16 +94,6 @@ public class DebugSubCommand implements PlayerSubCommand {
             return CommandResult.SUCCESS;
         }
 
-        if (args[0].equalsIgnoreCase("gun")) {
-            ItemStack gun = gameManager.getGunManager().createGunItem();
-            Map<Integer, ItemStack> leftovers = player.getInventory().addItem(gun);
-            for (ItemStack leftover : leftovers.values()) {
-                player.getWorld().dropItemNaturally(player.getLocation(), leftover);
-            }
-            player.sendMessage(ChatUtil.prefixed("&eDebug: gun added to your inventory."));
-            return CommandResult.SUCCESS;
-        }
-
         if (!args[0].equalsIgnoreCase("force-start")) {
             return CommandResult.INVALID_USAGE;
         }
@@ -145,7 +133,7 @@ public class DebugSubCommand implements PlayerSubCommand {
 
     @Override
     public String getUsage() {
-        return "/murder debug <force-start|identity|identityreset|corpse|corpseclear|suicide|gun> [arena]";
+        return "/murder debug <force-start|identity|identityreset|corpse|corpseclear|suicide> [arena]";
     }
 
     @Override
@@ -165,7 +153,7 @@ public class DebugSubCommand implements PlayerSubCommand {
         }
         if (args.length == 1) {
             return CommandArgs.filterByPrefix(
-                    List.of("force-start", "identity", "identityreset", "resetidentity", "corpse", "corpseclear", "clearcorpse", "suicide", "gun"),
+                    List.of("force-start", "identity", "identityreset", "resetidentity", "corpse", "corpseclear", "clearcorpse", "suicide"),
                     args[0]
             );
         }

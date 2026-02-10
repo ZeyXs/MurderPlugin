@@ -85,7 +85,6 @@ public class GameSession {
         assignRoles();
         applySecretIdentities();
 
-        int aliveCount = alivePlayers.size();
         for (UUID playerId : alivePlayers) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) {
@@ -95,10 +94,11 @@ public class GameSession {
             if (spawn != null) {
                 player.teleport(spawn);
             }
-            loadoutService.preparePlayerForRound(player, roles.get(playerId), aliveCount);
+            loadoutService.preparePlayerForRound(player, roles.get(playerId));
             cacheIdentityDisplayName(playerId);
         }
 
+        updateAliveCountDisplays();
         updateChatCompletionsForActivePlayers();
         spectatorService.refreshPlayerVisibility();
     }
@@ -356,21 +356,35 @@ public class GameSession {
     }
 
     private void updateAliveCountDisplays() {
-        int aliveCount = alivePlayers.size();
+        int aliveNonMurdererCount = countAliveNonMurderers();
         Set<UUID> alive = new HashSet<>(alivePlayers);
         for (UUID playerId : arena.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) {
                 continue;
             }
-            if (alive.contains(playerId)) {
-                player.setLevel(aliveCount);
+            if (!alive.contains(playerId)) {
+                player.setLevel(0);
+                player.setExp(0.0f);
+                continue;
+            }
+            if (playerId.equals(murdererId)) {
+                player.setLevel(aliveNonMurdererCount);
                 player.setExp(1.0f);
                 continue;
             }
             player.setLevel(0);
-            player.setExp(0.0f);
         }
+    }
+
+    private int countAliveNonMurderers() {
+        int count = 0;
+        for (UUID playerId : alivePlayers) {
+            if (!playerId.equals(murdererId)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private void updateChatCompletionsForActivePlayers() {

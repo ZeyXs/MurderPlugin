@@ -27,7 +27,7 @@ public class GameManager {
         this.scoreboardManager = new ScoreboardManager();
         this.secretIdentityManager = new SecretIdentityManager(configurationManager, arenaManager);
         this.corpseManager = new CorpseManager(MurderPlugin.getInstance());
-        this.gunManager = new GunManager(this);
+        this.gunManager = new GunManager();
         registerListeners();
     }
 
@@ -75,7 +75,6 @@ public class GameManager {
             }
         }
         corpseManager.clearCorpses();
-        gunManager.shutdown();
     }
 
     private void registerListeners() {
@@ -83,7 +82,6 @@ public class GameManager {
         pluginManager.registerEvents(setupWizardManager, MurderPlugin.getInstance());
         pluginManager.registerEvents(scoreboardManager, MurderPlugin.getInstance());
         pluginManager.registerEvents(secretIdentityManager, MurderPlugin.getInstance());
-        pluginManager.registerEvents(gunManager, MurderPlugin.getInstance());
     }
 
 }

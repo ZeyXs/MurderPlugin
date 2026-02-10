@@ -60,7 +60,7 @@ public class SessionLoadoutService {
         player.sendHealthUpdate(player.getHealth(), foodLevel, 0f);
     }
 
-    public void preparePlayerForRound(Player player, Role role, int aliveCount) {
+    public void preparePlayerForRound(Player player, Role role) {
         if (player == null || role == null) {
             return;
         }
@@ -82,7 +82,7 @@ public class SessionLoadoutService {
         player.getInventory().setItem(8, QuickChatMenu.buildChatBook());
         applyIdentityChestplate(player);
         player.getInventory().setHeldItemSlot(8);
-        player.setLevel(aliveCount);
+        player.setLevel(0);
         player.setExp(1.0f);
 
         String roleLine = switch (role) {
