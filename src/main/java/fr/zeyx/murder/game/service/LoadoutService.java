@@ -1,4 +1,4 @@
-package fr.zeyx.murder.game.session;
+package fr.zeyx.murder.game.service;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.game.QuickChatMenu;
@@ -25,7 +25,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import java.time.Duration;
 
-public class SessionLoadoutService {
+public class LoadoutService {
 
     private static final int MURDERER_FOOD_LEVEL = 8;
     private static final int NON_MURDERER_FOOD_LEVEL = 6;
@@ -35,7 +35,7 @@ public class SessionLoadoutService {
     private static final String MURDERER_SWITCH_IDENTITY_NAME = "&7&lSwitch Identity&r &7• Right Click";
     private final GameManager gameManager;
 
-    public SessionLoadoutService(GameManager gameManager) {
+    public LoadoutService(GameManager gameManager) {
         this.gameManager = gameManager;
     }
 
@@ -66,6 +66,9 @@ public class SessionLoadoutService {
         }
 
         player.getInventory().clear();
+        player.getInventory().setHeldItemSlot(8);
+        player.setLevel(0);
+        player.setExp(1.0f);
         enforceHungerLock(player, role);
 
         if (role == Role.MURDERER) {
@@ -78,12 +81,8 @@ public class SessionLoadoutService {
             ItemStack gun = gameManager.getGunManager().createGunItem();
             player.getInventory().setItem(0, gun);
         }
-
         player.getInventory().setItem(8, QuickChatMenu.buildChatBook());
         applyIdentityChestplate(player);
-        player.getInventory().setHeldItemSlot(8);
-        player.setLevel(0);
-        player.setExp(1.0f);
 
         String roleLine = switch (role) {
             case MURDERER -> "&4Murderer";
@@ -99,7 +98,7 @@ public class SessionLoadoutService {
             identityName = "&f" + player.getName();
         }
 
-        SessionNametagService.hide(player);
+        NametagService.hide(player);
         gameManager.getScoreboardManager().showGameBoard(player, roleLine, identityName);
         player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 5, 0, false, false, false));
         player.sendMessage(ChatUtil.component("&7Your secret identity is: " + identityName));

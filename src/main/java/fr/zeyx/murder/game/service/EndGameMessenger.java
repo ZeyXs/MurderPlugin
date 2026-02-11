@@ -1,4 +1,4 @@
-package fr.zeyx.murder.game.session;
+package fr.zeyx.murder.game.service;
 
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.Role;
@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
-public class SessionEndGameMessenger {
+public class EndGameMessenger {
 
     private final Arena arena;
     private final List<UUID> roundParticipants;
@@ -19,12 +19,12 @@ public class SessionEndGameMessenger {
     private final Function<UUID, String> identityDisplayNameResolver;
     private final Function<UUID, String> realPlayerNameResolver;
 
-    public SessionEndGameMessenger(Arena arena,
-                                   List<UUID> roundParticipants,
-                                   List<UUID> alivePlayers,
-                                   Map<UUID, Role> roles,
-                                   Function<UUID, String> identityDisplayNameResolver,
-                                   Function<UUID, String> realPlayerNameResolver) {
+    public EndGameMessenger(Arena arena,
+                            List<UUID> roundParticipants,
+                            List<UUID> alivePlayers,
+                            Map<UUID, Role> roles,
+                            Function<UUID, String> identityDisplayNameResolver,
+                            Function<UUID, String> realPlayerNameResolver) {
         this.arena = arena;
         this.roundParticipants = roundParticipants;
         this.alivePlayers = alivePlayers;

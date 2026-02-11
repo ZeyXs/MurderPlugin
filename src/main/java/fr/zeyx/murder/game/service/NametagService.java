@@ -1,4 +1,4 @@
-package fr.zeyx.murder.game.session;
+package fr.zeyx.murder.game.service;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
-public final class SessionNametagService {
+public final class NametagService {
 
     private static final String HIDDEN_NAMETAG_TEAM = "murder_hide";
 
-    private SessionNametagService() {
+    private NametagService() {
     }
 
     public static void hide(Player player) {

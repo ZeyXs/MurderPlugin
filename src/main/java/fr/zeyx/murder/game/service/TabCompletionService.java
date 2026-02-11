@@ -1,9 +1,8 @@
-package fr.zeyx.murder.game.session;
+package fr.zeyx.murder.game.service;
 
 import com.destroystokyo.paper.event.server.AsyncTabCompleteEvent;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.manager.SecretIdentityManager;
-import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerChatTabCompleteEvent;
 
 import java.util.ArrayList;
@@ -12,11 +11,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-public class SessionTabCompletionService {
+public class TabCompletionService {
 
     private final SecretIdentityManager secretIdentityManager;
 
-    public SessionTabCompletionService(SecretIdentityManager secretIdentityManager) {
+    public TabCompletionService(SecretIdentityManager secretIdentityManager) {
         this.secretIdentityManager = secretIdentityManager;
     }
 

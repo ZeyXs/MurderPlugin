@@ -1,10 +1,9 @@
-package fr.zeyx.murder.game.session;
+package fr.zeyx.murder.game.service;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.QuickChatMenu;
 import fr.zeyx.murder.manager.SecretIdentityManager;
-import fr.zeyx.murder.util.ChatUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -18,14 +17,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class SessionQuickChatService {
+public class QuickChatService {
 
     private final Arena arena;
     private final SecretIdentityManager secretIdentityManager;
     private final Map<UUID, ItemStack[]> chatHotbars = new HashMap<>();
     private final Set<UUID> chatMenuCooldown = new HashSet<>();
 
-    public SessionQuickChatService(Arena arena, SecretIdentityManager secretIdentityManager) {
+    public QuickChatService(Arena arena, SecretIdentityManager secretIdentityManager) {
         this.arena = arena;
         this.secretIdentityManager = secretIdentityManager;
     }

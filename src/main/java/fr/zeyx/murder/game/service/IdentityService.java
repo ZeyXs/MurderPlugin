@@ -1,4 +1,4 @@
-package fr.zeyx.murder.game.session;
+package fr.zeyx.murder.game.service;
 
 import fr.zeyx.murder.manager.GameManager;
 import org.bukkit.Bukkit;
@@ -9,11 +9,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 
-public class SessionIdentityService {
+public class IdentityService {
 
     private final GameManager gameManager;
 
-    public SessionIdentityService(GameManager gameManager) {
+    public IdentityService(GameManager gameManager) {
         this.gameManager = gameManager;
     }
 

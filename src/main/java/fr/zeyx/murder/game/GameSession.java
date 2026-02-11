@@ -1,12 +1,12 @@
 package fr.zeyx.murder.game;
 
 import fr.zeyx.murder.arena.Arena;
-import fr.zeyx.murder.game.session.SessionEndGameMessenger;
-import fr.zeyx.murder.game.session.SessionIdentityService;
-import fr.zeyx.murder.game.session.SessionLoadoutService;
-import fr.zeyx.murder.game.session.SessionNametagService;
-import fr.zeyx.murder.game.session.SessionQuickChatService;
-import fr.zeyx.murder.game.session.SessionSpectatorService;
+import fr.zeyx.murder.game.service.EndGameMessenger;
+import fr.zeyx.murder.game.service.IdentityService;
+import fr.zeyx.murder.game.service.LoadoutService;
+import fr.zeyx.murder.game.service.NametagService;
+import fr.zeyx.murder.game.service.QuickChatService;
+import fr.zeyx.murder.game.service.SpectatorService;
 import fr.zeyx.murder.manager.GameManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -34,11 +34,11 @@ public class GameSession {
     private final Map<UUID, String> realPlayerNames = new HashMap<>();
     private final Map<UUID, String> identityDisplayNames = new HashMap<>();
 
-    private final SessionQuickChatService quickChatService;
-    private final SessionIdentityService identityService;
-    private final SessionLoadoutService loadoutService;
-    private final SessionSpectatorService spectatorService;
-    private final SessionEndGameMessenger endGameMessenger;
+    private final QuickChatService quickChatService;
+    private final IdentityService identityService;
+    private final LoadoutService loadoutService;
+    private final SpectatorService spectatorService;
+    private final EndGameMessenger endGameMessenger;
 
     private UUID murdererId;
     private UUID detectiveId;
@@ -47,17 +47,17 @@ public class GameSession {
     public GameSession(GameManager gameManager, Arena arena) {
         this.gameManager = gameManager;
         this.arena = arena;
-        this.quickChatService = new SessionQuickChatService(arena, gameManager.getSecretIdentityManager());
-        this.identityService = new SessionIdentityService(gameManager);
-        this.loadoutService = new SessionLoadoutService(gameManager);
-        this.spectatorService = new SessionSpectatorService(
+        this.quickChatService = new QuickChatService(arena, gameManager.getSecretIdentityManager());
+        this.identityService = new IdentityService(gameManager);
+        this.loadoutService = new LoadoutService(gameManager);
+        this.spectatorService = new SpectatorService(
                 gameManager,
                 arena,
                 alivePlayers,
                 identityService::resolveIdentityDisplayName,
                 identityService::resolveChatName
         );
-        this.endGameMessenger = new SessionEndGameMessenger(
+        this.endGameMessenger = new EndGameMessenger(
                 arena,
                 roundParticipants,
                 alivePlayers,
@@ -236,11 +236,11 @@ public class GameSession {
     }
 
     public static void hideNametag(Player player) {
-        SessionNametagService.hide(player);
+        NametagService.hide(player);
     }
 
     public static void showNametag(Player player) {
-        SessionNametagService.show(player);
+        NametagService.show(player);
     }
 
     public boolean isGameOver() {

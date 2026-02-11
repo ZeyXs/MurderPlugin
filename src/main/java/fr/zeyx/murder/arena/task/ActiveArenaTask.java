@@ -2,6 +2,7 @@ package fr.zeyx.murder.arena.task;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
+import fr.zeyx.murder.arena.state.ActiveArenaState;
 import fr.zeyx.murder.arena.state.WaitingArenaState;
 import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.manager.GameManager;
@@ -16,11 +17,13 @@ public class ActiveArenaTask extends BukkitRunnable {
 
     private final GameManager gameManager;
     private final Arena arena;
+    private final ActiveArenaState activeArenaState;
     private final GameSession session;
 
-    public ActiveArenaTask(GameManager gameManager, Arena arena, GameSession session) {
+    public ActiveArenaTask(GameManager gameManager, Arena arena, ActiveArenaState activeArenaState, GameSession session) {
         this.gameManager = gameManager;
         this.arena = arena;
+        this.activeArenaState = activeArenaState;
         this.session = session;
     }
 
@@ -35,6 +38,9 @@ public class ActiveArenaTask extends BukkitRunnable {
 
         if (session.isGameOver()) {
             cancel();
+            if (activeArenaState != null) {
+                activeArenaState.clearAllKnifeItems();
+            }
             session.endGame();
 
             MurderPlugin.getInstance().getServer().getScheduler().runTaskLater(MurderPlugin.getInstance(), endGameTask -> {
