@@ -1,12 +1,12 @@
 package fr.zeyx.murder.game;
 
 import fr.zeyx.murder.arena.Arena;
-import fr.zeyx.murder.game.service.EndGameMessenger;
+import fr.zeyx.murder.game.feature.EndGameMessenger;
+import fr.zeyx.murder.game.feature.LoadoutFeature;
+import fr.zeyx.murder.game.feature.QuickChatFeature;
+import fr.zeyx.murder.game.feature.SpectatorFeature;
 import fr.zeyx.murder.game.service.IdentityService;
-import fr.zeyx.murder.game.service.LoadoutService;
 import fr.zeyx.murder.game.service.NametagService;
-import fr.zeyx.murder.game.service.QuickChatService;
-import fr.zeyx.murder.game.service.SpectatorService;
 import fr.zeyx.murder.manager.GameManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -34,10 +34,10 @@ public class GameSession {
     private final Map<UUID, String> realPlayerNames = new HashMap<>();
     private final Map<UUID, String> identityDisplayNames = new HashMap<>();
 
-    private final QuickChatService quickChatService;
+    private final QuickChatFeature quickChatFeature;
     private final IdentityService identityService;
-    private final LoadoutService loadoutService;
-    private final SpectatorService spectatorService;
+    private final LoadoutFeature loadoutFeature;
+    private final SpectatorFeature spectatorFeature;
     private final EndGameMessenger endGameMessenger;
 
     private UUID murdererId;
@@ -47,10 +47,10 @@ public class GameSession {
     public GameSession(GameManager gameManager, Arena arena) {
         this.gameManager = gameManager;
         this.arena = arena;
-        this.quickChatService = new QuickChatService(arena, gameManager.getSecretIdentityManager());
+        this.quickChatFeature = new QuickChatFeature(arena, gameManager.getSecretIdentityManager());
         this.identityService = new IdentityService(gameManager);
-        this.loadoutService = new LoadoutService(gameManager);
-        this.spectatorService = new SpectatorService(
+        this.loadoutFeature = new LoadoutFeature(gameManager);
+        this.spectatorFeature = new SpectatorFeature(
                 gameManager,
                 arena,
                 alivePlayers,
@@ -80,7 +80,7 @@ public class GameSession {
                 realPlayerNames.put(playerId, realName);
             }
         }
-        spectatorService.clearState();
+        spectatorFeature.clearState();
 
         assignRoles();
         applySecretIdentities();
@@ -94,20 +94,20 @@ public class GameSession {
             if (spawn != null) {
                 player.teleport(spawn);
             }
-            loadoutService.preparePlayerForRound(player, roles.get(playerId));
+            loadoutFeature.preparePlayerForRound(player, roles.get(playerId));
             cacheIdentityDisplayName(playerId);
         }
 
         updateAliveCountDisplays();
         updateChatCompletionsForActivePlayers();
-        spectatorService.refreshPlayerVisibility();
+        spectatorFeature.refreshPlayerVisibility();
     }
 
     public void endGame() {
         endGameMessenger.sendRoleRevealMessages();
         endGameMessenger.sendWinnerMessage(murdererId, murdererKillerId);
-        spectatorService.restoreVisibilityForArenaPlayers();
-        spectatorService.clearState();
+        spectatorFeature.restoreVisibilityForArenaPlayers();
+        spectatorFeature.clearState();
 
         for (UUID playerId : arena.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
@@ -115,7 +115,7 @@ public class GameSession {
                 continue;
             }
             clearChatCompletions(player);
-            spectatorService.prepareForEndGame(player);
+            spectatorFeature.prepareForEndGame(player);
             player.setGameMode(GameMode.SPECTATOR);
             showNametag(player);
             gameManager.getSecretIdentityManager().resetIdentity(player);
@@ -134,7 +134,7 @@ public class GameSession {
         if (player == null) {
             return;
         }
-        loadoutService.enforceHungerLock(player, roles.get(player.getUniqueId()));
+        loadoutFeature.enforceHungerLock(player, roles.get(player.getUniqueId()));
     }
 
     public void removeAlive(UUID playerId) {
@@ -147,11 +147,11 @@ public class GameSession {
         if (playerId != null && playerId.equals(murdererId) && killerId != null && !killerId.equals(playerId)) {
             murdererKillerId = killerId;
         }
-        spectatorService.onAliveListChanged(playerId);
+        spectatorFeature.onAliveListChanged(playerId);
         updateChatCompletionsForActivePlayers();
         updateAliveCountDisplays();
-        spectatorService.updateSpectatorBoards();
-        spectatorService.refreshPlayerVisibility();
+        spectatorFeature.updateSpectatorBoards();
+        spectatorFeature.refreshPlayerVisibility();
     }
 
     public UUID getMurdererId() {
@@ -167,9 +167,9 @@ public class GameSession {
             return false;
         }
         if (!isAlive(player.getUniqueId())) {
-            return spectatorService.handleInteract(player, itemName, legacyName);
+            return spectatorFeature.handleInteract(player, itemName, legacyName);
         }
-        if (quickChatService.handleInteract(player, legacyName)) {
+        if (quickChatFeature.handleInteract(player, legacyName)) {
             return true;
         }
         if (itemName.equals(arena.LEAVE_ITEM)) {
@@ -195,7 +195,7 @@ public class GameSession {
         cacheIdentityDisplayName(victimId);
         gameManager.getCorpseManager().spawnCorpse(victim, victim.getLocation(), victim.getInventory().getChestplate());
         clearTransientState(victim);
-        spectatorService.prepareSpectator(victim, killer);
+        spectatorFeature.prepareSpectator(victim, killer);
 
         UUID killerId = killer == null ? null : killer.getUniqueId();
         removeAlive(victimId, killerId);
@@ -206,8 +206,8 @@ public class GameSession {
         if (player == null) {
             return;
         }
-        quickChatService.clearTransientState(player);
-        spectatorService.clearTransientState(player);
+        quickChatFeature.clearTransientState(player);
+        spectatorFeature.clearTransientState(player);
         clearChatCompletions(player);
     }
 

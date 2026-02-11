@@ -1,9 +1,10 @@
-package fr.zeyx.murder.game.service;
+package fr.zeyx.murder.game.feature;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.game.QuickChatMenu;
 import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.manager.GameManager;
+import fr.zeyx.murder.game.service.NametagService;
 import fr.zeyx.murder.util.ChatUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import net.kyori.adventure.title.Title;
@@ -25,7 +26,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import java.time.Duration;
 
-public class LoadoutService {
+public class LoadoutFeature {
 
     private static final int MURDERER_FOOD_LEVEL = 8;
     private static final int NON_MURDERER_FOOD_LEVEL = 6;
@@ -35,7 +36,7 @@ public class LoadoutService {
     private static final String MURDERER_SWITCH_IDENTITY_NAME = "&7&lSwitch Identity&r &7• Right Click";
     private final GameManager gameManager;
 
-    public LoadoutService(GameManager gameManager) {
+    public LoadoutFeature(GameManager gameManager) {
         this.gameManager = gameManager;
     }
 

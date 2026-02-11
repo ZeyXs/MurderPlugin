@@ -1,4 +1,4 @@
-package fr.zeyx.murder.game.service;
+package fr.zeyx.murder.game.feature;
 
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.Role;

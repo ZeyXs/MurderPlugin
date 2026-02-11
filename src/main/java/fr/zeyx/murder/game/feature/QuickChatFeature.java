@@ -1,4 +1,4 @@
-package fr.zeyx.murder.game.service;
+package fr.zeyx.murder.game.feature;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
@@ -17,14 +17,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class QuickChatService {
+public class QuickChatFeature {
 
     private final Arena arena;
     private final SecretIdentityManager secretIdentityManager;
     private final Map<UUID, ItemStack[]> chatHotbars = new HashMap<>();
     private final Set<UUID> chatMenuCooldown = new HashSet<>();
 
-    public QuickChatService(Arena arena, SecretIdentityManager secretIdentityManager) {
+    public QuickChatFeature(Arena arena, SecretIdentityManager secretIdentityManager) {
         this.arena = arena;
         this.secretIdentityManager = secretIdentityManager;
     }

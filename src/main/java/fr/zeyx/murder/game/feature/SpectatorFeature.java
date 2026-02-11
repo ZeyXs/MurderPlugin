@@ -1,4 +1,4 @@
-package fr.zeyx.murder.game.service;
+package fr.zeyx.murder.game.feature;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
-public class SpectatorService {
+public class SpectatorFeature {
 
     private static final String SPECTATOR_TARGET_SELECTOR_NAME = "&b&lTarget Selector &r&7• Right Click";
     private static final String SPECTATOR_VISIBILITY_NAME = "&c&lSpectator Visibility &r&7• Right Click";
@@ -42,7 +42,7 @@ public class SpectatorService {
     private final Map<UUID, Boolean> spectatorVisibility = new HashMap<>();
     private final Map<UUID, Integer> spectatorTargetIndexes = new HashMap<>();
 
-    public SpectatorService(GameManager gameManager,
+    public SpectatorFeature(GameManager gameManager,
                             Arena arena,
                             List<UUID> alivePlayers,
                             Function<UUID, String> identityDisplayNameResolver,
