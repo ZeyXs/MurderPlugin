@@ -1,54 +1,32 @@
 package fr.zeyx.murder.game;
 
-import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.feature.EndGameMessenger;
+import fr.zeyx.murder.game.feature.EndGameFeature;
 import fr.zeyx.murder.game.feature.GunFeature;
 import fr.zeyx.murder.game.feature.LoadoutFeature;
+import fr.zeyx.murder.game.feature.SwitchIdentityFeature;
 import fr.zeyx.murder.game.feature.QuickChatFeature;
 import fr.zeyx.murder.game.feature.SpectatorFeature;
+import fr.zeyx.murder.game.service.AliveDisplayService;
 import fr.zeyx.murder.game.service.IdentityService;
 import fr.zeyx.murder.game.service.NametagService;
-import fr.zeyx.murder.manager.CorpseManager;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
-import fr.zeyx.murder.util.ItemBuilder;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Color;
-import org.bukkit.FireworkEffect;
-import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.FireworkMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import java.time.Duration;
 
 public class GameSession {
-
-    private static final String MURDERER_SWITCH_IDENTITY_DISABLED_NAME = "&7&lSwitch Identity&r &7• Right Click";
-    private static final String MURDERER_SWITCH_IDENTITY_ENABLED_NAME = "&d&lSwitch Identity&r &7• Right Click";
-    private static final String MURDERER_SWITCH_IDENTITY_DISABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_SWITCH_IDENTITY_DISABLED_NAME);
-    private static final String MURDERER_SWITCH_IDENTITY_ENABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_SWITCH_IDENTITY_ENABLED_NAME);
-    private static final int MURDERER_SWITCH_IDENTITY_SLOT = 4;
-    private static final double MURDERER_SWITCH_IDENTITY_RADIUS = 1.75D;
 
     private final GameManager gameManager;
     private final Arena arena;
@@ -63,7 +41,10 @@ public class GameSession {
     private final IdentityService identityService;
     private final LoadoutFeature loadoutFeature;
     private final SpectatorFeature spectatorFeature;
+    private final AliveDisplayService aliveDisplayService;
+    private final SwitchIdentityFeature switchIdentityFeature;
     private final EndGameMessenger endGameMessenger;
+    private final EndGameFeature endGameFeature;
     private final GunFeature gunFeature;
 
     private UUID murdererId;
@@ -77,6 +58,8 @@ public class GameSession {
         this.quickChatFeature = new QuickChatFeature(arena, gameManager.getSecretIdentityManager());
         this.identityService = new IdentityService(gameManager);
         this.loadoutFeature = new LoadoutFeature(gameManager);
+        this.aliveDisplayService = new AliveDisplayService(arena, identityService);
+        this.switchIdentityFeature = new SwitchIdentityFeature(gameManager);
         this.spectatorFeature = new SpectatorFeature(
                 gameManager,
                 arena,
@@ -93,6 +76,7 @@ public class GameSession {
                 this::resolveIdentityDisplayName,
                 this::resolveRealPlayerName
         );
+        this.endGameFeature = new EndGameFeature(arena, gameManager);
     }
 
     public void start() {
@@ -127,11 +111,11 @@ public class GameSession {
             cacheIdentityDisplayName(playerId);
         }
 
-        updateAliveCountDisplays();
-        updateChatCompletionsForActivePlayers();
+        aliveDisplayService.updateAliveCountDisplays(alivePlayers, murdererId);
+        aliveDisplayService.updateChatCompletionsForActivePlayers();
         spectatorFeature.refreshPlayerVisibility();
         registerCurrentMurdererIdentity();
-        updateMurdererSwitchIdentityItem();
+        switchIdentityFeature.updateSwitchIdentityItem(murdererId, alivePlayers, roundParticipants);
     }
 
     public void endGame() {
@@ -140,27 +124,14 @@ public class GameSession {
         spectatorFeature.restoreVisibilityForArenaPlayers();
         spectatorFeature.clearState();
 
-        boolean murdererWon = hasMurdererWon();
-        UUID winnerId = resolveWinnerId(murdererWon);
-        sendPersonalEndGameMessages(murdererWon, winnerId);
-        startWinnerFireworks(winnerId);
-        Set<UUID> aliveAtEnd = new HashSet<>(alivePlayers);
-
-        for (UUID playerId : arena.getActivePlayers()) {
-            Player player = Bukkit.getPlayer(playerId);
-            if (player == null) {
-                continue;
-            }
-            clearChatCompletions(player);
-            if (aliveAtEnd.contains(playerId)) {
-                spectatorFeature.prepareForEndGame(player);
-                clearInventoryKeepChestplate(player);
-                player.setGameMode(GameMode.ADVENTURE);
-                player.setAllowFlight(true);
-            }
-            showNametag(player);
-            gameManager.getSecretIdentityManager().resetIdentity(player);
-        }
+        endGameFeature.applyEndGameState(
+                alivePlayers,
+                roles,
+                murdererId,
+                murdererKillerId,
+                hasMurdererWon(),
+                spectatorFeature
+        );
     }
 
     public List<UUID> getAlivePlayers() {
@@ -179,7 +150,7 @@ public class GameSession {
     }
 
     public void tick() {
-        updateMurdererSwitchIdentityItem();
+        switchIdentityFeature.updateSwitchIdentityItem(murdererId, alivePlayers, roundParticipants);
     }
 
     public void removeAlive(UUID playerId) {
@@ -193,18 +164,10 @@ public class GameSession {
             murdererKillerId = killerId;
         }
         spectatorFeature.onAliveListChanged(playerId);
-        updateChatCompletionsForActivePlayers();
-        updateAliveCountDisplays();
+        aliveDisplayService.updateChatCompletionsForActivePlayers();
+        aliveDisplayService.updateAliveCountDisplays(alivePlayers, murdererId);
         spectatorFeature.updateSpectatorBoards();
         spectatorFeature.refreshPlayerVisibility();
-    }
-
-    public UUID getMurdererId() {
-        return murdererId;
-    }
-
-    public UUID getDetectiveId() {
-        return detectiveId;
     }
 
     public boolean handleInteract(Player player, Component itemName, String legacyName) {
@@ -214,8 +177,15 @@ public class GameSession {
         if (!isAlive(player.getUniqueId())) {
             return spectatorFeature.handleInteract(player, itemName, legacyName);
         }
-        if (isAliveMurderer(player.getUniqueId()) && isMurdererSwitchIdentityItem(legacyName)) {
-            handleMurdererIdentitySwitch(player);
+        if (switchIdentityFeature.isSwitchIdentityItem(legacyName)) {
+            switchIdentityFeature.handleIdentitySwitch(
+                    player,
+                    murdererId,
+                    alivePlayers,
+                    roundParticipants,
+                    this::resolveIdentityDisplayName,
+                    this::onMurdererIdentityChanged
+            );
             return true;
         }
         if (quickChatFeature.handleInteract(player, legacyName)) {
@@ -267,7 +237,7 @@ public class GameSession {
         }
         quickChatFeature.clearTransientState(player);
         spectatorFeature.clearTransientState(player);
-        clearChatCompletions(player);
+        aliveDisplayService.clearChatCompletions(player);
     }
 
     public void beforeArenaRemoval(Player player) {
@@ -374,143 +344,6 @@ public class GameSession {
         return alivePlayers.contains(playerId);
     }
 
-    private boolean isAliveMurderer(UUID playerId) {
-        return playerId != null && playerId.equals(murdererId) && isAlive(playerId);
-    }
-
-    private boolean isMurdererSwitchIdentityItem(String legacyName) {
-        return MURDERER_SWITCH_IDENTITY_DISABLED_LEGACY.equals(legacyName)
-                || MURDERER_SWITCH_IDENTITY_ENABLED_LEGACY.equals(legacyName);
-    }
-
-    private void handleMurdererIdentitySwitch(Player murderer) {
-        if (murderer == null || !isAliveMurderer(murderer.getUniqueId())) {
-            return;
-        }
-        CorpseManager.CorpseIdentity corpseIdentity = gameManager.getCorpseManager()
-                .findNearestCorpseIdentity(murderer.getLocation(), MURDERER_SWITCH_IDENTITY_RADIUS);
-        if (corpseIdentity == null
-                || !roundParticipants.contains(corpseIdentity.getSourcePlayerId())
-                || corpseIdentity.getIdentityName() == null
-                || corpseIdentity.getIdentityName().isBlank()) {
-            setMurdererSwitchIdentityItem(murderer, false);
-            return;
-        }
-
-        UUID murdererPlayerId = murderer.getUniqueId();
-        String oldMurdererIdentity = gameManager.getSecretIdentityManager().getCurrentIdentityName(murdererPlayerId);
-        if (oldMurdererIdentity == null || oldMurdererIdentity.isBlank()) {
-            oldMurdererIdentity = murderer.getName();
-        }
-        ChatColor oldMurdererColor = gameManager.getSecretIdentityManager().getCurrentIdentityColor(murdererPlayerId);
-        PlayerProfile oldMurdererProfile = resolveIdentityProfile(murdererPlayerId, murderer);
-
-        gameManager.getSecretIdentityManager().cacheIdentityProfile(
-                corpseIdentity.getIdentityName(),
-                corpseIdentity.getIdentityProfile()
-        );
-        boolean switched = gameManager.getSecretIdentityManager().applySpecificIdentityFromCache(
-                murderer,
-                corpseIdentity.getIdentityName(),
-                corpseIdentity.getIdentityColor()
-        );
-        if (!switched) {
-            return;
-        }
-
-        gameManager.getCorpseManager().setCorpseIdentity(
-                corpseIdentity.getCorpseId(),
-                oldMurdererIdentity,
-                oldMurdererColor,
-                oldMurdererProfile
-        );
-        cacheIdentityDisplayName(murdererPlayerId);
-        registerCurrentMurdererIdentity();
-        updateChatCompletionsForActivePlayers();
-
-        String newIdentityDisplay = resolveIdentityDisplayName(murdererPlayerId);
-        if (newIdentityDisplay == null || newIdentityDisplay.isBlank()) {
-            newIdentityDisplay = "&f" + murderer.getName();
-        }
-        refreshIdentityChestplate(murderer);
-        gameManager.getScoreboardManager().showGameBoard(murderer, "&4Murderer", newIdentityDisplay);
-        murderer.sendMessage(ChatUtil.component("&aYou switched identities! You are now: " + newIdentityDisplay));
-        setMurdererSwitchIdentityItem(murderer, true);
-    }
-
-    private void updateMurdererSwitchIdentityItem() {
-        if (!isAliveMurderer(murdererId)) {
-            return;
-        }
-        Player murderer = Bukkit.getPlayer(murdererId);
-        if (murderer == null || !murderer.isOnline()) {
-            return;
-        }
-        CorpseManager.CorpseIdentity corpseIdentity = gameManager.getCorpseManager()
-                .findNearestCorpseIdentity(murderer.getLocation(), MURDERER_SWITCH_IDENTITY_RADIUS);
-        boolean canActivate = corpseIdentity != null && roundParticipants.contains(corpseIdentity.getSourcePlayerId());
-        setMurdererSwitchIdentityItem(murderer, canActivate);
-    }
-
-    private void setMurdererSwitchIdentityItem(Player murderer, boolean active) {
-        if (murderer == null) {
-            return;
-        }
-        if (isQuickChatMenuOpen(murderer)) {
-            return;
-        }
-        ItemStack current = murderer.getInventory().getItem(MURDERER_SWITCH_IDENTITY_SLOT);
-        Material expectedMaterial = active ? Material.PINK_DYE : Material.GRAY_DYE;
-        String expectedLegacyName = active ? MURDERER_SWITCH_IDENTITY_ENABLED_LEGACY : MURDERER_SWITCH_IDENTITY_DISABLED_LEGACY;
-        if (current != null && current.getType() == expectedMaterial && current.hasItemMeta()) {
-            Component currentName = current.getItemMeta().displayName();
-            if (currentName != null) {
-                String legacy = org.bukkit.ChatColor.stripColor(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(currentName));
-                String expected = org.bukkit.ChatColor.stripColor(expectedLegacyName);
-                if (legacy != null && legacy.equals(expected)) {
-                    return;
-                }
-            }
-        }
-        murderer.getInventory().setItem(
-                MURDERER_SWITCH_IDENTITY_SLOT,
-                new ItemBuilder(expectedMaterial)
-                        .setName(ChatUtil.itemComponent(active ? MURDERER_SWITCH_IDENTITY_ENABLED_NAME : MURDERER_SWITCH_IDENTITY_DISABLED_NAME))
-                        .toItemStack()
-        );
-    }
-
-    private boolean isQuickChatMenuOpen(Player player) {
-        if (player == null) {
-            return false;
-        }
-        ItemStack slotEight = player.getInventory().getItem(8);
-        if (slotEight == null || !slotEight.hasItemMeta()) {
-            return false;
-        }
-        Component itemName = slotEight.getItemMeta().displayName();
-        if (itemName == null) {
-            return false;
-        }
-        String legacyName = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(itemName);
-        return QuickChatMenu.CLOSE_NAME.equals(legacyName);
-    }
-
-    private void refreshIdentityChestplate(Player player) {
-        if (player == null) {
-            return;
-        }
-        ItemStack chestplate = player.getInventory().getChestplate();
-        if (chestplate == null || chestplate.getType() != Material.LEATHER_CHESTPLATE) {
-            return;
-        }
-        if (chestplate.getItemMeta() instanceof LeatherArmorMeta chestplateMeta) {
-            chestplateMeta.setColor(gameManager.getSecretIdentityManager().getCurrentIdentityLeatherColor(player.getUniqueId()));
-            chestplate.setItemMeta(chestplateMeta);
-            player.getInventory().setChestplate(chestplate);
-        }
-    }
-
     private PlayerProfile resolveIdentityProfile(UUID playerId, Player fallbackPlayer) {
         PlayerProfile identityProfile = gameManager.getSecretIdentityManager().getCurrentIdentityProfile(playerId);
         if (identityProfile != null) {
@@ -573,6 +406,12 @@ public class GameSession {
         }
     }
 
+    private void onMurdererIdentityChanged(UUID playerId) {
+        cacheIdentityDisplayName(playerId);
+        registerCurrentMurdererIdentity();
+        aliveDisplayService.updateChatCompletionsForActivePlayers();
+    }
+
     private String resolveRealPlayerName(UUID playerId) {
         String cachedRealName = realPlayerNames.get(playerId);
         if (cachedRealName != null && !cachedRealName.isBlank()) {
@@ -586,166 +425,4 @@ public class GameSession {
         return playerId == null ? "Unknown" : playerId.toString();
     }
 
-    private void updateAliveCountDisplays() {
-        int aliveNonMurdererCount = countAliveNonMurderers();
-        Set<UUID> alive = new HashSet<>(alivePlayers);
-        for (UUID playerId : arena.getActivePlayers()) {
-            Player player = Bukkit.getPlayer(playerId);
-            if (player == null) {
-                continue;
-            }
-            if (!alive.contains(playerId)) {
-                player.setLevel(0);
-                player.setExp(0.0f);
-                continue;
-            }
-            if (playerId.equals(murdererId)) {
-                player.setLevel(aliveNonMurdererCount);
-                player.setExp(1.0f);
-                continue;
-            }
-            player.setLevel(0);
-        }
-    }
-
-    private int countAliveNonMurderers() {
-        int count = 0;
-        for (UUID playerId : alivePlayers) {
-            if (!playerId.equals(murdererId)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private void updateChatCompletionsForActivePlayers() {
-        List<String> identityCompletions = identityService.collectIdentityCompletions(arena.getActivePlayers());
-        for (UUID playerId : arena.getActivePlayers()) {
-            Player player = Bukkit.getPlayer(playerId);
-            if (player == null) {
-                continue;
-            }
-            player.setCustomChatCompletions(identityCompletions);
-        }
-    }
-
-    private void clearChatCompletions(Player player) {
-        player.setCustomChatCompletions(List.of());
-    }
-
-    private void clearInventoryKeepChestplate(Player player) {
-        if (player == null) {
-            return;
-        }
-        ItemStack chestplate = player.getInventory().getChestplate();
-        player.getInventory().clear();
-        player.getInventory().setArmorContents(new ItemStack[4]);
-        player.getInventory().setChestplate(chestplate);
-        player.getInventory().setItemInOffHand(new ItemStack(Material.AIR));
-    }
-
-    private UUID resolveWinnerId(boolean murdererWon) {
-        if (murdererWon) {
-            return murdererId;
-        }
-        if (murdererKillerId != null) {
-            return murdererKillerId;
-        }
-        for (UUID playerId : alivePlayers) {
-            if (!playerId.equals(murdererId)) {
-                return playerId;
-            }
-        }
-        return null;
-    }
-
-    private void sendPersonalEndGameMessages(boolean murdererWon, UUID winnerId) {
-        for (UUID playerId : arena.getActivePlayers()) {
-            Player player = Bukkit.getPlayer(playerId);
-            if (player == null) {
-                continue;
-            }
-            if (winnerId != null && winnerId.equals(playerId)) {
-                showEndGameTitle(player, "&aYou won!");
-                continue;
-            }
-
-            if (murdererWon) {
-                if (!playerId.equals(murdererId)) {
-                    showEndGameTitle(player, "&cYou lose!");
-                }
-                continue;
-            }
-
-            Role role = roles.get(playerId);
-            boolean aliveInnocent = alivePlayers.contains(playerId)
-                    && role != null
-                    && role != Role.MURDERER;
-            if (aliveInnocent) {
-                showEndGameTitle(player, "&aYou survived!");
-            }
-        }
-    }
-
-    private void showEndGameTitle(Player player, String title) {
-        if (player == null || title == null || title.isBlank()) {
-            return;
-        }
-        player.showTitle(Title.title(
-                ChatUtil.component(title),
-                Component.empty(),
-                Title.Times.times(Duration.ofMillis(250), Duration.ofSeconds(3), Duration.ofMillis(500))
-        ));
-    }
-
-    private void startWinnerFireworks(UUID winnerId) {
-        if (winnerId == null) {
-            return;
-        }
-        new BukkitRunnable() {
-            private int elapsedTicks = 0;
-
-            @Override
-            public void run() {
-                Player winner = Bukkit.getPlayer(winnerId);
-                if (winner == null || !winner.isOnline() || !arena.isPlaying(winner)) {
-                    cancel();
-                    return;
-                }
-                spawnWinnerFirework(winner);
-                elapsedTicks += 10;
-                if (elapsedTicks >= 20 * 5) {
-                    cancel();
-                }
-            }
-        }.runTaskTimer(MurderPlugin.getInstance(), 0L, 20L);
-    }
-
-    private void spawnWinnerFirework(Player winner) {
-        if (winner == null || winner.getWorld() == null) {
-            return;
-        }
-        Firework firework = winner.getWorld().spawn(winner.getLocation().clone().add(0.0D, 1.0D, 0.0D), Firework.class);
-        FireworkMeta meta = firework.getFireworkMeta();
-        Color primary = Color.fromRGB(
-                ThreadLocalRandom.current().nextInt(64, 256),
-                ThreadLocalRandom.current().nextInt(64, 256),
-                ThreadLocalRandom.current().nextInt(64, 256)
-        );
-        Color fade = Color.fromRGB(
-                ThreadLocalRandom.current().nextInt(64, 256),
-                ThreadLocalRandom.current().nextInt(64, 256),
-                ThreadLocalRandom.current().nextInt(64, 256)
-        );
-        meta.addEffect(FireworkEffect.builder()
-                .with(FireworkEffect.Type.BALL)
-                .withColor(primary)
-                .withFade(fade)
-                .trail(true)
-                .flicker(true)
-                .build());
-        meta.setPower(1);
-        firework.setFireworkMeta(meta);
-        Bukkit.getScheduler().runTaskLater(MurderPlugin.getInstance(), firework::detonate, 20L);
-    }
 }
