@@ -4,6 +4,7 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.feature.EndGameMessenger;
 import fr.zeyx.murder.game.feature.EndGameFeature;
 import fr.zeyx.murder.game.feature.GunFeature;
+import fr.zeyx.murder.game.feature.KnifeFeature;
 import fr.zeyx.murder.game.feature.LoadoutFeature;
 import fr.zeyx.murder.game.feature.SwitchIdentityFeature;
 import fr.zeyx.murder.game.feature.QuickChatFeature;
@@ -46,15 +47,18 @@ public class GameSession {
     private final EndGameMessenger endGameMessenger;
     private final EndGameFeature endGameFeature;
     private final GunFeature gunFeature;
+    private final KnifeFeature knifeFeature;
 
     private UUID murdererId;
     private UUID detectiveId;
     private UUID murdererKillerId;
+    private int murdererKillCount;
 
-    public GameSession(GameManager gameManager, Arena arena, GunFeature gunFeature) {
+    public GameSession(GameManager gameManager, Arena arena, GunFeature gunFeature, KnifeFeature knifeFeature) {
         this.gameManager = gameManager;
         this.arena = arena;
         this.gunFeature = gunFeature;
+        this.knifeFeature = knifeFeature;
         this.quickChatFeature = new QuickChatFeature(arena, gameManager.getSecretIdentityManager());
         this.identityService = new IdentityService(gameManager);
         this.loadoutFeature = new LoadoutFeature(gameManager);
@@ -65,7 +69,10 @@ public class GameSession {
                 arena,
                 alivePlayers,
                 identityService::resolveIdentityDisplayName,
-                identityService::resolveChatName
+                identityService::resolveChatName,
+                this::getRole,
+                this::resolveWeaponCountForSpectatorView,
+                this::getMurdererKillCount
         );
         this.endGameMessenger = new EndGameMessenger(
                 arena,
@@ -171,11 +178,14 @@ public class GameSession {
     }
 
     public boolean handleInteract(Player player, Component itemName, String legacyName) {
-        if (player == null || itemName == null || legacyName == null) {
+        if (player == null) {
             return false;
         }
         if (!isAlive(player.getUniqueId())) {
             return spectatorFeature.handleInteract(player, itemName, legacyName);
+        }
+        if (itemName == null || legacyName == null) {
+            return false;
         }
         if (switchIdentityFeature.isSwitchIdentityItem(legacyName)) {
             switchIdentityFeature.handleIdentitySwitch(
@@ -210,6 +220,10 @@ public class GameSession {
         if (!isAlive(victimId)) {
             return false;
         }
+        UUID killerId = killer == null ? null : killer.getUniqueId();
+        if (killerId != null && killerId.equals(murdererId)) {
+            murdererKillCount++;
+        }
 
         cacheIdentityDisplayName(victimId);
         gameManager.getCorpseManager().spawnCorpse(
@@ -226,7 +240,6 @@ public class GameSession {
         clearTransientState(victim);
         spectatorFeature.prepareSpectator(victim, killer);
 
-        UUID killerId = killer == null ? null : killer.getUniqueId();
         removeAlive(victimId, killerId);
         return true;
     }
@@ -304,6 +317,7 @@ public class GameSession {
         murdererId = null;
         detectiveId = null;
         murdererKillerId = null;
+        murdererKillCount = 0;
 
         List<UUID> players = new ArrayList<>(alivePlayers);
         if (players.isEmpty()) {
@@ -423,6 +437,26 @@ public class GameSession {
             return currentRealName;
         }
         return playerId == null ? "Unknown" : playerId.toString();
+    }
+
+    private int getMurdererKillCount() {
+        return murdererKillCount;
+    }
+
+    private int resolveWeaponCountForSpectatorView(UUID playerId) {
+        if (playerId == null) {
+            return 0;
+        }
+        Player player = Bukkit.getPlayer(playerId);
+        if (player == null || !player.isOnline()) {
+            return 0;
+        }
+        Role role = roles.get(playerId);
+        if (role == Role.MURDERER) {
+            return knifeFeature == null ? 0 : knifeFeature.getKnifeCount(player);
+        }
+        int gunCount = gunFeature == null ? 0 : gunFeature.getGunCount(player);
+        return gunCount > 0 ? 1 : 0;
     }
 
 }

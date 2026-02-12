@@ -48,7 +48,7 @@ public class ActiveArenaState extends PlayingArenaState {
     public void onEnable() {
         super.onEnable();
 
-        session = new GameSession(gameManager, arena, gunFeature);
+        session = new GameSession(gameManager, arena, gunFeature, knifeFeature);
         session.start();
 
         activeArenaTask = new ActiveArenaTask(gameManager, arena, this, session);
@@ -113,11 +113,11 @@ public class ActiveArenaState extends PlayingArenaState {
         }
 
         Component itemName = event.getItem().getItemMeta().displayName();
-        if (itemName == null || session == null) {
+        if (session == null) {
             return;
         }
 
-        String legacyName = LegacyComponentSerializer.legacySection().serialize(itemName);
+        String legacyName = itemName == null ? "" : LegacyComponentSerializer.legacySection().serialize(itemName);
         if (session.handleInteract(player, itemName, legacyName)) {
             event.setCancelled(true);
         }

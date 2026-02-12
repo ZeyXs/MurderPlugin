@@ -134,6 +134,23 @@ public class KnifeFeature {
         handledThrownKnifeProjectiles.clear();
     }
 
+    public int getKnifeCount(Player player) {
+        if (player == null) {
+            return 0;
+        }
+        int count = 0;
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (isKnifeItem(item)) {
+                count += item.getAmount();
+            }
+        }
+        ItemStack offHand = player.getInventory().getItemInOffHand();
+        if (isKnifeItem(offHand)) {
+            count += offHand.getAmount();
+        }
+        return count;
+    }
+
     private void startThrownKnifeTask(Item thrownKnife, GameSession session) {
         UUID knifeEntityId = thrownKnife.getUniqueId();
         stopThrownKnifeTask(knifeEntityId);

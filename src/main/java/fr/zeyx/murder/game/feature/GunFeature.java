@@ -121,6 +121,23 @@ public class GunFeature {
         clearAllDroppedGuns();
     }
 
+    public int getGunCount(Player player) {
+        if (player == null) {
+            return 0;
+        }
+        int count = 0;
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (gameManager.getGunManager().isGunItem(item)) {
+                count += item.getAmount();
+            }
+        }
+        ItemStack offHand = player.getInventory().getItemInOffHand();
+        if (gameManager.getGunManager().isGunItem(offHand)) {
+            count += offHand.getAmount();
+        }
+        return count;
+    }
+
     public void clearAllDroppedGuns() {
         for (UUID itemId : Set.copyOf(droppedGunItems.keySet())) {
             Item droppedGun = resolveItem(itemId);
@@ -172,7 +189,7 @@ public class GunFeature {
             event.setCancelled(true);
             return;
         }
-        if (hasGunInInventory(player)) {
+        if (getGunCount(player) > 0) {
             event.setCancelled(true);
             return;
         }
@@ -383,18 +400,6 @@ public class GunFeature {
             return oneGun;
         }
         return null;
-    }
-
-    private boolean hasGunInInventory(Player player) {
-        if (player == null) {
-            return false;
-        }
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (gameManager.getGunManager().isGunItem(item)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private boolean isInnocent(Role role) {

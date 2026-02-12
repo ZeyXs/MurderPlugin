@@ -2,8 +2,10 @@ package fr.zeyx.murder.game.feature;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
+import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.gui.EquipmentMenu;
 import fr.zeyx.murder.gui.ProfileMenu;
+import fr.zeyx.murder.gui.TeleportSelectorMenu;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
 import fr.zeyx.murder.util.ItemBuilder;
@@ -19,18 +21,21 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 public class SpectatorFeature {
 
-    private static final String SPECTATOR_TARGET_SELECTOR_NAME = "&b&lTarget Selector &r&7• Right Click";
+    private static final String SPECTATOR_TARGET_SELECTOR_NAME = "&b&lTeleport Selector &r&7• Right Click";
+    private static final String SPECTATOR_TARGET_SELECTOR_OLD_NAME = "&b&lTarget Selector &r&7• Right Click";
     private static final String SPECTATOR_VISIBILITY_NAME = "&c&lSpectator Visibility &r&7• Right Click";
     private static final String SPECTATOR_TARGET_SELECTOR_LEGACY = org.bukkit.ChatColor.translateAlternateColorCodes('&', SPECTATOR_TARGET_SELECTOR_NAME);
+    private static final String SPECTATOR_TARGET_SELECTOR_OLD_LEGACY = org.bukkit.ChatColor.translateAlternateColorCodes('&', SPECTATOR_TARGET_SELECTOR_OLD_NAME);
     private static final String SPECTATOR_VISIBILITY_LEGACY = org.bukkit.ChatColor.translateAlternateColorCodes('&', SPECTATOR_VISIBILITY_NAME);
     private static final int SPECTATOR_TIME_LEFT_SECONDS = 100;
 
@@ -38,31 +43,38 @@ public class SpectatorFeature {
     private final Arena arena;
     private final List<UUID> alivePlayers;
     private final Function<UUID, String> identityDisplayNameResolver;
-    private final Function<Player, String> chatNameResolver;
+    private final TeleportSelectorMenu teleportSelectorMenu;
     private final Map<UUID, Boolean> spectatorVisibility = new HashMap<>();
-    private final Map<UUID, Integer> spectatorTargetIndexes = new HashMap<>();
 
     public SpectatorFeature(GameManager gameManager,
                             Arena arena,
                             List<UUID> alivePlayers,
                             Function<UUID, String> identityDisplayNameResolver,
-                            Function<Player, String> chatNameResolver) {
+                            Function<Player, String> chatNameResolver,
+                            Function<UUID, Role> roleResolver,
+                            Function<UUID, Integer> weaponCountResolver,
+                            IntSupplier murdererKillCountResolver) {
         this.gameManager = gameManager;
         this.arena = arena;
         this.alivePlayers = alivePlayers;
         this.identityDisplayNameResolver = identityDisplayNameResolver;
-        this.chatNameResolver = chatNameResolver;
+        this.teleportSelectorMenu = new TeleportSelectorMenu(
+                gameManager,
+                identityDisplayNameResolver,
+                chatNameResolver,
+                roleResolver,
+                weaponCountResolver,
+                murdererKillCountResolver
+        );
     }
 
     public void clearState() {
         spectatorVisibility.clear();
-        spectatorTargetIndexes.clear();
     }
 
     public void prepareSpectator(Player victim, Player killer) {
         UUID victimId = victim.getUniqueId();
         spectatorVisibility.put(victimId, true);
-        spectatorTargetIndexes.put(victimId, -1);
 
         victim.removePotionEffect(PotionEffectType.SPEED);
         victim.getInventory().clear();
@@ -90,7 +102,6 @@ public class SpectatorFeature {
         }
         UUID playerId = player.getUniqueId();
         spectatorVisibility.remove(playerId);
-        spectatorTargetIndexes.remove(playerId);
         prepareForEndGame(player);
         restoreVisibilityFor(player);
     }
@@ -100,7 +111,6 @@ public class SpectatorFeature {
             return;
         }
         spectatorVisibility.putIfAbsent(playerId, true);
-        spectatorTargetIndexes.putIfAbsent(playerId, -1);
     }
 
     public void updateSpectatorBoards() {
@@ -137,20 +147,20 @@ public class SpectatorFeature {
     }
 
     public boolean handleInteract(Player player, Component itemName, String legacyName) {
-        if (itemName.equals(arena.LEAVE_ITEM)) {
+        if (itemName != null && itemName.equals(arena.LEAVE_ITEM)) {
             arena.removePlayer(player, gameManager);
             return true;
         }
-        if (itemName.equals(arena.SELECT_EQUIPMENT_ITEM)) {
+        if (itemName != null && itemName.equals(arena.SELECT_EQUIPMENT_ITEM)) {
             new EquipmentMenu().open(player);
             return true;
         }
-        if (itemName.equals(arena.VIEW_STATS_ITEM)) {
+        if (itemName != null && itemName.equals(arena.VIEW_STATS_ITEM)) {
             new ProfileMenu().open(player);
             return true;
         }
-        if (SPECTATOR_TARGET_SELECTOR_LEGACY.equals(legacyName)) {
-            selectNextTarget(player);
+        if (isTeleportSelectorName(legacyName)) {
+            teleportSelectorMenu.open(player, alivePlayers);
             return true;
         }
         if (SPECTATOR_VISIBILITY_LEGACY.equals(legacyName)) {
@@ -206,29 +216,6 @@ public class SpectatorFeature {
         return "&f" + killer.getName();
     }
 
-    private void selectNextTarget(Player spectator) {
-        List<Player> targets = new ArrayList<>();
-        for (UUID playerId : alivePlayers) {
-            Player target = Bukkit.getPlayer(playerId);
-            if (target != null) {
-                targets.add(target);
-            }
-        }
-        if (targets.isEmpty()) {
-            spectator.sendMessage(ChatUtil.prefixed("&cNo alive players to watch."));
-            return;
-        }
-        UUID spectatorId = spectator.getUniqueId();
-        int nextIndex = spectatorTargetIndexes.getOrDefault(spectatorId, -1) + 1;
-        if (nextIndex >= targets.size()) {
-            nextIndex = 0;
-        }
-        spectatorTargetIndexes.put(spectatorId, nextIndex);
-        Player target = targets.get(nextIndex);
-        spectator.teleport(target.getLocation());
-        spectator.sendMessage(ChatUtil.prefixed("&7Now watching " + chatNameResolver.apply(target) + "&7."));
-    }
-
     private void toggleSpectatorVisibility(Player spectator) {
         UUID spectatorId = spectator.getUniqueId();
         boolean enabled = !spectatorVisibility.getOrDefault(spectatorId, true);
@@ -237,6 +224,21 @@ public class SpectatorFeature {
         spectator.sendMessage(ChatUtil.prefixed(enabled
                 ? "&7Spectators are now &avisible&7."
                 : "&7Spectators are now &chidden&7."));
+    }
+
+    private boolean isTeleportSelectorName(String legacyName) {
+        if (legacyName == null || legacyName.isBlank()) {
+            return false;
+        }
+        if (SPECTATOR_TARGET_SELECTOR_LEGACY.equals(legacyName) || SPECTATOR_TARGET_SELECTOR_OLD_LEGACY.equals(legacyName)) {
+            return true;
+        }
+        String stripped = org.bukkit.ChatColor.stripColor(legacyName);
+        if (stripped == null || stripped.isBlank()) {
+            return false;
+        }
+        String normalized = stripped.toLowerCase(Locale.ROOT);
+        return normalized.contains("teleport selector") || normalized.contains("target selector");
     }
 
     private int getSpectatorCount() {
