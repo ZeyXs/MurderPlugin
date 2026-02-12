@@ -2,6 +2,7 @@ package fr.zeyx.murder.game;
 
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.feature.EndGameMessenger;
+import fr.zeyx.murder.game.feature.GunFeature;
 import fr.zeyx.murder.game.feature.LoadoutFeature;
 import fr.zeyx.murder.game.feature.QuickChatFeature;
 import fr.zeyx.murder.game.feature.SpectatorFeature;
@@ -55,14 +56,16 @@ public class GameSession {
     private final LoadoutFeature loadoutFeature;
     private final SpectatorFeature spectatorFeature;
     private final EndGameMessenger endGameMessenger;
+    private final GunFeature gunFeature;
 
     private UUID murdererId;
     private UUID detectiveId;
     private UUID murdererKillerId;
 
-    public GameSession(GameManager gameManager, Arena arena) {
+    public GameSession(GameManager gameManager, Arena arena, GunFeature gunFeature) {
         this.gameManager = gameManager;
         this.arena = arena;
+        this.gunFeature = gunFeature;
         this.quickChatFeature = new QuickChatFeature(arena, gameManager.getSecretIdentityManager());
         this.identityService = new IdentityService(gameManager);
         this.loadoutFeature = new LoadoutFeature(gameManager);
@@ -229,6 +232,9 @@ public class GameSession {
                 gameManager.getSecretIdentityManager().getCurrentIdentityColor(victimId),
                 resolveIdentityProfile(victimId, victim)
         );
+        if (gunFeature != null) {
+            gunFeature.onPlayerEliminated(victim, this);
+        }
         clearTransientState(victim);
         spectatorFeature.prepareSpectator(victim, killer);
 

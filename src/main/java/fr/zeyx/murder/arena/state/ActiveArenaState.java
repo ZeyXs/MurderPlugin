@@ -48,7 +48,7 @@ public class ActiveArenaState extends PlayingArenaState {
     public void onEnable() {
         super.onEnable();
 
-        session = new GameSession(gameManager, arena);
+        session = new GameSession(gameManager, arena, gunFeature);
         session.start();
 
         activeArenaTask = new ActiveArenaTask(gameManager, arena, this, session);
@@ -134,13 +134,15 @@ public class ActiveArenaState extends PlayingArenaState {
     }
 
     @EventHandler
-    public void onKnifePickup(EntityPickupItemEvent event) {
+    public void onEntityPickupItem(EntityPickupItemEvent event) {
         knifeFeature.onKnifePickup(event, session);
+        gunFeature.onGunPickup(event, session);
     }
 
     @EventHandler
-    public void onKnifeDespawn(ItemDespawnEvent event) {
+    public void onItemDespawn(ItemDespawnEvent event) {
         knifeFeature.onKnifeDespawn(event);
+        gunFeature.onGunDespawn(event);
     }
 
     @Override
@@ -174,5 +176,9 @@ public class ActiveArenaState extends PlayingArenaState {
 
     public void clearAllKnifeItems() {
         knifeFeature.clearAllKnifeItems();
+    }
+
+    public void clearAllGunItems() {
+        gunFeature.clearAllDroppedGuns();
     }
 }

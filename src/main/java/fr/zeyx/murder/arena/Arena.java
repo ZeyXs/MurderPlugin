@@ -144,9 +144,7 @@ public class Arena {
         gameManager.getScoreboardManager().clear(player);
         updateLobbyBoards(gameManager);
 
-        if (!(arenaState instanceof ActiveArenaState activeArenaState)) {
-            player.sendMessage(ChatUtil.prefixed("&7You left the game."));
-        } else {
+        if (arenaState instanceof ActiveArenaState activeArenaState) {
             player.removePotionEffect(PotionEffectType.SPEED);
             GameSession session = activeArenaState.getSession();
             if (session != null) {
