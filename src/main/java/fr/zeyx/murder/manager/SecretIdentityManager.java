@@ -29,6 +29,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +39,7 @@ public class SecretIdentityManager implements Listener {
     private static final Pattern VALID_USERNAME = Pattern.compile("^[A-Za-z0-9_]{3,16}$");
     private static final int MURDERER_FOOD_LEVEL = 8;
     private static final int NON_MURDERER_FOOD_LEVEL = 6;
+
     private static final ChatColor[] IDENTITY_COLORS = new ChatColor[] {
             ChatColor.DARK_BLUE,
             ChatColor.DARK_GREEN,
@@ -61,11 +64,15 @@ public class SecretIdentityManager implements Listener {
     private final Map<UUID, Integer> requestVersions = new ConcurrentHashMap<>();
     private final Map<UUID, String> currentIdentities = new ConcurrentHashMap<>();
     private final Map<UUID, ChatColor> currentIdentityColors = new ConcurrentHashMap<>();
+    private final Map<UUID, PlayerProfile> currentIdentityProfiles = new ConcurrentHashMap<>();
+    private final Map<String, ProfileProperty> identityTextureCache = new ConcurrentHashMap<>();
+    private final Set<String> identitiesBeingCached = ConcurrentHashMap.newKeySet();
 
     public SecretIdentityManager(ConfigurationManager configurationManager, ArenaManager arenaManager) {
         this.configurationManager = configurationManager;
         this.arenaManager = arenaManager;
         warnInvalidUsernames();
+        warmIdentityCache(configurationManager.getSecretIdentityNames(), false, 0L);
     }
 
     public String applyRandomIdentity(Player player) {
@@ -107,6 +114,7 @@ public class SecretIdentityManager implements Listener {
                             + " but found " + validNames.size() + ".");
             return false;
         }
+        warmIdentityCache(validNames, true, 6000L);
         Collections.shuffle(validNames);
         for (int i = 0; i < players.size(); i++) {
             Player player = players.get(i);
@@ -123,6 +131,7 @@ public class SecretIdentityManager implements Listener {
         PlayerProfile originalProfile = originalProfiles.remove(player.getUniqueId());
         currentIdentities.remove(player.getUniqueId());
         currentIdentityColors.remove(player.getUniqueId());
+        currentIdentityProfiles.remove(player.getUniqueId());
         requestVersions.remove(player.getUniqueId());
         if (original == null && originalProfile == null) {
             return false;
@@ -142,6 +151,26 @@ public class SecretIdentityManager implements Listener {
         return true;
     }
 
+    public boolean applySpecificIdentityFromCache(Player player, String identityName, ChatColor identityColor) {
+        if (player == null || identityName == null || identityName.isBlank()) {
+            return false;
+        }
+        UUID playerId = player.getUniqueId();
+        if (identityColor != null) {
+            currentIdentityColors.put(playerId, identityColor);
+        } else {
+            ensureIdentityColor(playerId);
+        }
+        currentIdentityProfiles.remove(playerId);
+        warmIdentityCache(List.of(identityName), true, 3000L);
+        int requestVersion = bumpRequestVersion(playerId);
+        originalListNames.putIfAbsent(playerId, player.playerListName() == null ? Component.text(player.getName()) : player.playerListName());
+        originalProfiles.putIfAbsent(playerId, player.getPlayerProfile().clone());
+        currentIdentities.put(playerId, identityName);
+        player.playerListName(ChatUtil.component(formatTabListName(playerId, identityName)));
+        return applyIdentityFromCache(player, identityName, requestVersion);
+    }
+
     private boolean applyIdentity(Player player, String username) {
         if (!isValidUsername(username)) {
             MurderPlugin.getInstance().getLogger()
@@ -155,7 +184,12 @@ public class SecretIdentityManager implements Listener {
         originalListNames.putIfAbsent(player.getUniqueId(), player.playerListName() == null ? Component.text(player.getName()) : player.playerListName());
         originalProfiles.putIfAbsent(player.getUniqueId(), player.getPlayerProfile().clone());
         currentIdentities.put(playerId, username);
+        currentIdentityProfiles.remove(playerId);
         player.playerListName(ChatUtil.component(formatTabListName(playerId, username)));
+
+        if (applyIdentityFromCache(player, username, requestVersion)) {
+            return true;
+        }
 
         PlayerProfile lookup = Bukkit.createProfile(username);
         lookup.update().whenComplete((resolved, throwable) -> {
@@ -179,12 +213,14 @@ public class SecretIdentityManager implements Listener {
                     MurderPlugin.getInstance().getLogger()
                             .warning("Failed to resolve secret identity '" + username + "' via Mojang API: " + error.getMessage());
                     currentIdentities.remove(player.getUniqueId());
+                    currentIdentityProfiles.remove(player.getUniqueId());
                     return;
                 }
                 if (textures == null || !textures.hasValue()) {
                     MurderPlugin.getInstance().getLogger()
                             .warning("Secret identity '" + username + "' is not a valid Minecraft account.");
                     currentIdentities.remove(player.getUniqueId());
+                    currentIdentityProfiles.remove(player.getUniqueId());
                     return;
                 }
                 applyResolvedIdentity(player, username, requestVersion, textures);
@@ -207,6 +243,25 @@ public class SecretIdentityManager implements Listener {
             return null;
         }
         return currentIdentities.get(playerId);
+    }
+
+    public PlayerProfile getCurrentIdentityProfile(UUID playerId) {
+        if (playerId == null) {
+            return null;
+        }
+        PlayerProfile profile = currentIdentityProfiles.get(playerId);
+        return profile == null ? null : profile.clone();
+    }
+
+    public void cacheIdentityProfile(String identityName, PlayerProfile profile) {
+        String key = normalizeIdentityKey(identityName);
+        if (key == null || profile == null) {
+            return;
+        }
+        ProfileProperty textureProperty = extractTextureProperty(profile);
+        if (textureProperty != null) {
+            identityTextureCache.put(key, cloneTextureProperty(textureProperty));
+        }
     }
 
     public ChatColor getCurrentIdentityColor(UUID playerId) {
@@ -331,53 +386,28 @@ public class SecretIdentityManager implements Listener {
     }
 
     private void applyResolvedIdentity(Player player, String username, int requestVersion, PlayerTextures sourceTextures) {
-        Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
-            if (!player.isOnline()) {
-                return;
-            }
-            if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
-                return;
-            }
-            PlayerProfile targetProfile = Bukkit.createProfile(player.getUniqueId(), username);
-            PlayerTextures targetTextures = targetProfile.getTextures();
-            if (sourceTextures.getSkin() != null) {
-                targetTextures.setSkin(sourceTextures.getSkin(), sourceTextures.getSkinModel());
-            }
-            if (sourceTextures.getCape() != null) {
-                targetTextures.setCape(sourceTextures.getCape());
-            }
-            targetProfile.setTextures(targetTextures);
-            int foodLevel = player.getFoodLevel();
-            float saturation = player.getSaturation();
-            float exhaustion = player.getExhaustion();
-            player.setPlayerProfile(targetProfile);
-            GameSession.hideNametag(player);
-            scheduleHungerRestore(player, foodLevel, saturation, exhaustion);
-            player.playerListName(ChatUtil.component(formatTabListName(player.getUniqueId(), username)));
-            currentIdentities.put(player.getUniqueId(), username);
-        });
+        PlayerProfile targetProfile = buildProfileFromTextures(player.getUniqueId(), username, sourceTextures);
+        if (targetProfile == null) {
+            return;
+        }
+        applyPreparedProfile(player, username, requestVersion, targetProfile);
     }
 
     private void applyResolvedIdentity(Player player, String username, int requestVersion, MojangUtil.MojangTextures textures) {
-        Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
-            if (!player.isOnline()) {
-                return;
-            }
-            if (!Objects.equals(requestVersions.get(player.getUniqueId()), requestVersion)) {
-                return;
-            }
-
-            PlayerProfile targetProfile = Bukkit.createProfile(player.getUniqueId(), username);
-            targetProfile.setProperty(new ProfileProperty("textures", textures.getValue(), textures.getSignature()));
-            int foodLevel = player.getFoodLevel();
-            float saturation = player.getSaturation();
-            float exhaustion = player.getExhaustion();
-            player.setPlayerProfile(targetProfile);
-            GameSession.hideNametag(player);
-            scheduleHungerRestore(player, foodLevel, saturation, exhaustion);
-            player.playerListName(ChatUtil.component(formatTabListName(player.getUniqueId(), username)));
-            currentIdentities.put(player.getUniqueId(), username);
-        });
+        if (textures == null || !textures.hasValue()) {
+            return;
+        }
+        ProfileProperty textureProperty = new ProfileProperty("textures", textures.getValue(), textures.getSignature());
+        String key = normalizeIdentityKey(username);
+        if (key != null) {
+            identityTextureCache.put(key, cloneTextureProperty(textureProperty));
+        }
+        PlayerProfile targetProfile = buildProfileFromTextureProperty(
+                player.getUniqueId(),
+                username,
+                textureProperty
+        );
+        applyPreparedProfile(player, username, requestVersion, targetProfile);
     }
 
     private void assignIdentityColors(List<Player> players) {
@@ -477,6 +507,204 @@ public class SecretIdentityManager implements Listener {
                 .map(session -> session == null ? null : session.getRole(player.getUniqueId()))
                 .map(role -> role == Role.MURDERER ? MURDERER_FOOD_LEVEL : NON_MURDERER_FOOD_LEVEL)
                 .orElse(fallbackFoodLevel);
+    }
+
+    private boolean applyIdentityFromCache(Player player, String identityName, int requestVersion) {
+        String key = normalizeIdentityKey(identityName);
+        if (player == null || key == null) {
+            return false;
+        }
+        ProfileProperty cachedTexture = identityTextureCache.get(key);
+        if (cachedTexture == null) {
+            return false;
+        }
+
+        PlayerProfile targetProfile = buildProfileFromTextureProperty(player.getUniqueId(), identityName, cachedTexture);
+        applyPreparedProfile(player, identityName, requestVersion, targetProfile);
+        return true;
+    }
+
+    private void warmIdentityCache(List<String> identities, boolean waitForCompletion, long timeoutMillis) {
+        if (identities == null || identities.isEmpty()) {
+            return;
+        }
+        List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+        for (String identity : identities) {
+            String key = normalizeIdentityKey(identity);
+            if (key == null || identityTextureCache.containsKey(key)) {
+                continue;
+            }
+            futures.add(cacheIdentityTextureAsync(identity));
+        }
+        if (!waitForCompletion || futures.isEmpty()) {
+            return;
+        }
+        CompletableFuture<Void> combined = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        try {
+            if (timeoutMillis > 0L) {
+                combined.get(timeoutMillis, TimeUnit.MILLISECONDS);
+            } else {
+                combined.get();
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private CompletableFuture<Boolean> cacheIdentityTextureAsync(String identityName) {
+        String key = normalizeIdentityKey(identityName);
+        if (key == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (identityTextureCache.containsKey(key)) {
+            return CompletableFuture.completedFuture(true);
+        }
+        if (!identitiesBeingCached.add(key)) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        String username = identityName.trim();
+        PlayerProfile lookup = Bukkit.createProfile(username);
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        lookup.update().whenComplete((resolved, throwable) -> {
+            if (throwable == null) {
+                PlayerProfile resolvedProfile = resolved == null ? lookup : resolved;
+                ProfileProperty textureProperty = extractTextureProperty(resolvedProfile);
+                if (textureProperty != null) {
+                    identityTextureCache.put(key, cloneTextureProperty(textureProperty));
+                    identitiesBeingCached.remove(key);
+                    result.complete(true);
+                    return;
+                }
+            }
+
+            MojangUtil.resolveTextures(username).whenComplete((textures, error) -> {
+                try {
+                    if (error != null || textures == null || !textures.hasValue()) {
+                        result.complete(false);
+                        return;
+                    }
+                    identityTextureCache.put(key, new ProfileProperty("textures", textures.getValue(), textures.getSignature()));
+                    result.complete(true);
+                } finally {
+                    identitiesBeingCached.remove(key);
+                }
+            });
+        });
+        return result;
+    }
+
+    private String normalizeIdentityKey(String identityName) {
+        if (identityName == null) {
+            return null;
+        }
+        String normalized = identityName.trim().toLowerCase();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private ProfileProperty extractTextureProperty(PlayerProfile profile) {
+        if (profile == null) {
+            return null;
+        }
+        for (ProfileProperty property : profile.getProperties()) {
+            if (property == null || !"textures".equals(property.getName())) {
+                continue;
+            }
+            if (property.getValue() == null || property.getValue().isBlank()) {
+                continue;
+            }
+            return property;
+        }
+        return null;
+    }
+
+    private ProfileProperty cloneTextureProperty(ProfileProperty property) {
+        if (property == null) {
+            return null;
+        }
+        return new ProfileProperty(property.getName(), property.getValue(), property.getSignature());
+    }
+
+    private PlayerProfile buildProfileFromTextureProperty(UUID playerId, String identityName, ProfileProperty textureProperty) {
+        if (playerId == null || identityName == null || identityName.isBlank() || textureProperty == null) {
+            return null;
+        }
+        PlayerProfile targetProfile = Bukkit.createProfile(playerId, identityName);
+        targetProfile.clearProperties();
+        targetProfile.setProperty(cloneTextureProperty(textureProperty));
+        return targetProfile;
+    }
+
+    private PlayerProfile buildProfileFromTextures(UUID playerId, String identityName, PlayerTextures sourceTextures) {
+        if (playerId == null || identityName == null || identityName.isBlank() || sourceTextures == null || sourceTextures.getSkin() == null) {
+            return null;
+        }
+        PlayerProfile targetProfile = Bukkit.createProfile(playerId, identityName);
+        PlayerTextures targetTextures = targetProfile.getTextures();
+        targetTextures.clear();
+        targetTextures.setSkin(sourceTextures.getSkin(), sourceTextures.getSkinModel());
+        if (sourceTextures.getCape() != null) {
+            targetTextures.setCape(sourceTextures.getCape());
+        }
+        targetProfile.setTextures(targetTextures);
+        return targetProfile;
+    }
+
+    private void applyPreparedProfile(Player player, String identityName, int requestVersion, PlayerProfile targetProfile) {
+        if (player == null || targetProfile == null || identityName == null || identityName.isBlank()) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        currentIdentityProfiles.put(playerId, targetProfile.clone());
+
+        Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (!Objects.equals(requestVersions.get(playerId), requestVersion)) {
+                return;
+            }
+            int foodLevel = player.getFoodLevel();
+            float saturation = player.getSaturation();
+            float exhaustion = player.getExhaustion();
+            player.setPlayerProfile(targetProfile);
+            refreshVisibleViewers(player);
+            reapplyProfileShortly(player, targetProfile, requestVersion);
+            GameSession.hideNametag(player);
+            scheduleHungerRestore(player, foodLevel, saturation, exhaustion);
+            player.playerListName(ChatUtil.component(formatTabListName(playerId, identityName)));
+            currentIdentities.put(playerId, identityName);
+            currentIdentityProfiles.put(playerId, targetProfile.clone());
+        });
+    }
+
+    private void refreshVisibleViewers(Player target) {
+        if (target == null || !target.isOnline()) {
+            return;
+        }
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            if (viewer == null || viewer.equals(target) || !viewer.canSee(target)) {
+                continue;
+            }
+            viewer.hidePlayer(MurderPlugin.getInstance(), target);
+            viewer.showPlayer(MurderPlugin.getInstance(), target);
+        }
+    }
+
+    private void reapplyProfileShortly(Player player, PlayerProfile targetProfile, int requestVersion) {
+        if (player == null || targetProfile == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        Bukkit.getScheduler().runTaskLater(MurderPlugin.getInstance(), task -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (!Objects.equals(requestVersions.get(playerId), requestVersion)) {
+                return;
+            }
+            player.setPlayerProfile(targetProfile);
+            refreshVisibleViewers(player);
+        }, 2L);
     }
 
 }

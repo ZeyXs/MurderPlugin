@@ -16,6 +16,7 @@ public class EndGameMessenger {
     private final List<UUID> roundParticipants;
     private final List<UUID> alivePlayers;
     private final Map<UUID, Role> roles;
+    private final Function<UUID, String> roleRevealIdentityResolver;
     private final Function<UUID, String> identityDisplayNameResolver;
     private final Function<UUID, String> realPlayerNameResolver;
 
@@ -23,12 +24,14 @@ public class EndGameMessenger {
                             List<UUID> roundParticipants,
                             List<UUID> alivePlayers,
                             Map<UUID, Role> roles,
+                            Function<UUID, String> roleRevealIdentityResolver,
                             Function<UUID, String> identityDisplayNameResolver,
                             Function<UUID, String> realPlayerNameResolver) {
         this.arena = arena;
         this.roundParticipants = roundParticipants;
         this.alivePlayers = alivePlayers;
         this.roles = roles;
+        this.roleRevealIdentityResolver = roleRevealIdentityResolver;
         this.identityDisplayNameResolver = identityDisplayNameResolver;
         this.realPlayerNameResolver = realPlayerNameResolver;
     }
@@ -42,7 +45,10 @@ public class EndGameMessenger {
             if (role == null) {
                 continue;
             }
-            String identityName = identityDisplayNameResolver.apply(playerId);
+            String identityName = roleRevealIdentityResolver.apply(playerId);
+            if (identityName == null || identityName.isBlank()) {
+                identityName = identityDisplayNameResolver.apply(playerId);
+            }
             String realPlayerName = realPlayerNameResolver.apply(playerId);
             boolean dead = !alivePlayers.contains(playerId);
             arena.sendArenaMessage(identityName + " &f» &7" + realPlayerName + " " + formatRoleToken(role, dead));

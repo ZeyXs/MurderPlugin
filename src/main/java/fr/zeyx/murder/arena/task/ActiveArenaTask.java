@@ -29,6 +29,8 @@ public class ActiveArenaTask extends BukkitRunnable {
 
     @Override
     public void run() {
+        session.tick();
+
         for (UUID playerId : new ArrayList<>(session.getAlivePlayers())) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null) {

@@ -25,7 +25,7 @@ public class GunFeature {
     private static final double GUN_ARROW_SPEED = 4D;
     private static final float GUN_SOUND_VOLUME = 1.0F;
     private static final float GUN_SOUND_PITCH = 2.0F;
-    private static final long GUN_COOLDOWN_MILLIS = 2000L;
+    private static final long GUN_COOLDOWN_MILLIS = 2750L;
     private static final int GUN_ARROW_MAX_LIFETIME_TICKS = 20 * 3;
     private static final Particle GUN_TRAIL_PARTICLE = resolveTrailParticle();
 
