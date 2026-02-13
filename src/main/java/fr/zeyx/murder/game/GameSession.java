@@ -21,11 +21,12 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class GameSession {
 
@@ -104,15 +105,17 @@ public class GameSession {
 
         assignRoles();
         applySecretIdentities();
+        List<Location> roundSpawns = assignUniqueRoundSpawns(alivePlayers.size());
+        int spawnIndex = 0;
 
         for (UUID playerId : alivePlayers) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) {
                 continue;
             }
-            Location spawn = pickSpawnLocation();
+            Location spawn = spawnIndex < roundSpawns.size() ? roundSpawns.get(spawnIndex++) : null;
             if (spawn != null) {
-                player.teleport(spawn);
+                player.teleport(spawn.clone());
             }
             loadoutFeature.preparePlayerForRound(player, roles.get(playerId));
             cacheIdentityDisplayName(playerId);
@@ -346,12 +349,78 @@ public class GameSession {
         gameManager.getSecretIdentityManager().applyUniqueIdentities(players);
     }
 
-    private Location pickSpawnLocation() {
-        List<Location> spawnSpots = arena.getSpawnSpots();
-        if (spawnSpots != null && !spawnSpots.isEmpty()) {
-            return spawnSpots.get(ThreadLocalRandom.current().nextInt(spawnSpots.size()));
+    private List<Location> assignUniqueRoundSpawns(int playerCount) {
+        List<Location> availableSpawns = collectDistinctConfiguredSpawns();
+        if (availableSpawns.isEmpty()) {
+            Location fallback = arena.getSpawnLocation();
+            if (fallback != null && fallback.getWorld() != null) {
+                availableSpawns.add(fallback.clone());
+            }
         }
-        return arena.getSpawnLocation();
+        Collections.shuffle(availableSpawns);
+
+        List<Location> assignedSpawns = new ArrayList<>(Math.max(playerCount, 0));
+        Set<String> usedSpawnKeys = new HashSet<>();
+
+        for (Location spawn : availableSpawns) {
+            if (spawn == null || spawn.getWorld() == null) {
+                continue;
+            }
+            if (assignedSpawns.size() >= playerCount) {
+                break;
+            }
+            if (usedSpawnKeys.add(toBlockKey(spawn))) {
+                assignedSpawns.add(spawn.clone());
+            }
+        }
+
+        if (assignedSpawns.size() >= playerCount || assignedSpawns.isEmpty()) {
+            return assignedSpawns;
+        }
+
+        // If config has fewer unique spawn spots than players, expand around the first spot.
+        Location anchor = assignedSpawns.get(0).clone();
+        int radius = 1;
+        while (assignedSpawns.size() < playerCount) {
+            for (int x = -radius; x <= radius && assignedSpawns.size() < playerCount; x++) {
+                for (int z = -radius; z <= radius && assignedSpawns.size() < playerCount; z++) {
+                    if (Math.abs(x) != radius && Math.abs(z) != radius) {
+                        continue;
+                    }
+                    Location candidate = anchor.clone().add(x * 2.0D, 0.0D, z * 2.0D);
+                    if (usedSpawnKeys.add(toBlockKey(candidate))) {
+                        assignedSpawns.add(candidate);
+                    }
+                }
+            }
+            radius++;
+        }
+        return assignedSpawns;
+    }
+
+    private List<Location> collectDistinctConfiguredSpawns() {
+        List<Location> distinctSpawns = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        List<Location> configuredSpawns = arena.getSpawnSpots();
+        if (configuredSpawns == null) {
+            return distinctSpawns;
+        }
+        for (Location spawn : configuredSpawns) {
+            if (spawn == null || spawn.getWorld() == null) {
+                continue;
+            }
+            if (seen.add(toBlockKey(spawn))) {
+                distinctSpawns.add(spawn.clone());
+            }
+        }
+        return distinctSpawns;
+    }
+
+    private String toBlockKey(Location location) {
+        return location.getWorld().getUID()
+                + ":" + location.getBlockX()
+                + ":" + location.getBlockY()
+                + ":" + location.getBlockZ();
     }
 
     private boolean isAlive(UUID playerId) {

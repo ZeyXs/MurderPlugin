@@ -59,7 +59,6 @@ public class EndGameFeature {
                 clearInventoryKeepChestplate(player);
                 player.setGameMode(GameMode.ADVENTURE);
                 player.setAllowFlight(true);
-                player.setFlying(true);
             }
             NametagService.show(player);
             gameManager.getSecretIdentityManager().resetIdentity(player);
