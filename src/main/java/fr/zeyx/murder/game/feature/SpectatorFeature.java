@@ -12,6 +12,7 @@ import fr.zeyx.murder.util.ItemBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -33,10 +34,10 @@ public class SpectatorFeature {
 
     private static final String SPECTATOR_TARGET_SELECTOR_NAME = "&b&lTeleport Selector &r&7• Right Click";
     private static final String SPECTATOR_TARGET_SELECTOR_OLD_NAME = "&b&lTarget Selector &r&7• Right Click";
-    private static final String SPECTATOR_VISIBILITY_NAME = "&c&lSpectator Visibility &r&7• Right Click";
-    private static final String SPECTATOR_TARGET_SELECTOR_LEGACY = org.bukkit.ChatColor.translateAlternateColorCodes('&', SPECTATOR_TARGET_SELECTOR_NAME);
-    private static final String SPECTATOR_TARGET_SELECTOR_OLD_LEGACY = org.bukkit.ChatColor.translateAlternateColorCodes('&', SPECTATOR_TARGET_SELECTOR_OLD_NAME);
-    private static final String SPECTATOR_VISIBILITY_LEGACY = org.bukkit.ChatColor.translateAlternateColorCodes('&', SPECTATOR_VISIBILITY_NAME);
+    private static final String SPECTATOR_VISIBILITY_TOGGLE_NAME = "&c&lSpectator Visibility &r&7• Right Click";
+    private static final String SPECTATOR_TARGET_SELECTOR_LEGACY = ChatColor.translateAlternateColorCodes('&', SPECTATOR_TARGET_SELECTOR_NAME);
+    private static final String SPECTATOR_TARGET_SELECTOR_OLD_LEGACY = ChatColor.translateAlternateColorCodes('&', SPECTATOR_TARGET_SELECTOR_OLD_NAME);
+    private static final String SPECTATOR_VISIBILITY_TOGGLE_LEGACY = ChatColor.translateAlternateColorCodes('&', SPECTATOR_VISIBILITY_TOGGLE_NAME);
     private static final int SPECTATOR_TIME_LEFT_SECONDS = 100;
 
     private final GameManager gameManager;
@@ -163,7 +164,7 @@ public class SpectatorFeature {
             teleportSelectorMenu.open(player, alivePlayers);
             return true;
         }
-        if (SPECTATOR_VISIBILITY_LEGACY.equals(legacyName)) {
+        if (isVisibilityToggleName(legacyName)) {
             toggleSpectatorVisibility(player);
             return true;
         }
@@ -181,7 +182,7 @@ public class SpectatorFeature {
             statsHead.setItemMeta(skullMeta);
         }
         player.getInventory().setItem(5, statsHead);
-        player.getInventory().setItem(7, new ItemBuilder(Material.REDSTONE).setName(ChatUtil.itemComponent(SPECTATOR_VISIBILITY_NAME)).toItemStack());
+        updateVisibilityToggleItem(player, spectatorVisibility.getOrDefault(player.getUniqueId(), true));
         player.getInventory().setItem(8, new ItemBuilder(Material.CLOCK).setName(arena.LEAVE_ITEM).toItemStack());
         player.getInventory().setHeldItemSlot(0);
     }
@@ -220,10 +221,16 @@ public class SpectatorFeature {
         UUID spectatorId = spectator.getUniqueId();
         boolean enabled = !spectatorVisibility.getOrDefault(spectatorId, true);
         spectatorVisibility.put(spectatorId, enabled);
+        updateVisibilityToggleItem(spectator, enabled);
         applyVisibilityForViewer(spectator);
         spectator.sendMessage(ChatUtil.prefixed(enabled
                 ? "&7Spectators are now &avisible&7."
                 : "&7Spectators are now &chidden&7."));
+    }
+
+    private void updateVisibilityToggleItem(Player spectator, boolean visible) {
+        Material material = visible ? Material.REDSTONE : Material.GUNPOWDER;
+        spectator.getInventory().setItem(7, new ItemBuilder(material).setName(ChatUtil.itemComponent(SPECTATOR_VISIBILITY_TOGGLE_NAME)).toItemStack());
     }
 
     private boolean isTeleportSelectorName(String legacyName) {
@@ -239,6 +246,21 @@ public class SpectatorFeature {
         }
         String normalized = stripped.toLowerCase(Locale.ROOT);
         return normalized.contains("teleport selector") || normalized.contains("target selector");
+    }
+
+    private boolean isVisibilityToggleName(String legacyName) {
+        if (legacyName == null || legacyName.isBlank()) {
+            return false;
+        }
+        if (SPECTATOR_VISIBILITY_TOGGLE_LEGACY.equals(legacyName)) {
+            return true;
+        }
+        String stripped = org.bukkit.ChatColor.stripColor(legacyName);
+        if (stripped == null || stripped.isBlank()) {
+            return false;
+        }
+        String normalized = stripped.toLowerCase(Locale.ROOT);
+        return normalized.contains("spectator visibility");
     }
 
     private int getSpectatorCount() {
