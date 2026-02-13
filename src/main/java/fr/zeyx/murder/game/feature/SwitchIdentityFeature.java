@@ -26,6 +26,7 @@ public class SwitchIdentityFeature {
     private static final String MURDERER_SWITCH_IDENTITY_ENABLED_NAME = "&d&lSwitch Identity&r &7• Right Click";
     private static final String MURDERER_SWITCH_IDENTITY_DISABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_SWITCH_IDENTITY_DISABLED_NAME);
     private static final String MURDERER_SWITCH_IDENTITY_ENABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_SWITCH_IDENTITY_ENABLED_NAME);
+    private static final String NO_DEAD_BODY_NEARBY_MESSAGE = "&cNo dead body nearby!";
     private static final int MURDERER_SWITCH_IDENTITY_SLOT = 4;
     private static final double MURDERER_SWITCH_IDENTITY_RADIUS = 1.75D;
 
@@ -59,6 +60,7 @@ public class SwitchIdentityFeature {
                 || corpseIdentity.getIdentityName() == null
                 || corpseIdentity.getIdentityName().isBlank()) {
             setMurdererSwitchIdentityItem(murderer, false);
+            sendNoDeadBodyNearbyMessage(murderer);
             return;
         }
 
@@ -182,5 +184,12 @@ public class SwitchIdentityFeature {
             return null;
         }
         return fallbackPlayer.getPlayerProfile().clone();
+    }
+
+    private void sendNoDeadBodyNearbyMessage(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.sendMessage(ChatColor.translateAlternateColorCodes('&', NO_DEAD_BODY_NEARBY_MESSAGE));
     }
 }
