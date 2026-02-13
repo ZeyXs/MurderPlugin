@@ -10,23 +10,33 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 public class QuickChatFeature {
 
+    private static final String NO_DEAD_BODY_NEARBY_MESSAGE = "&cNo dead body nearby!";
+
     private final Arena arena;
     private final SecretIdentityManager secretIdentityManager;
+    private final Supplier<? extends Collection<UUID>> alivePlayersSupplier;
     private final Map<UUID, ItemStack[]> chatHotbars = new HashMap<>();
     private final Set<UUID> chatMenuCooldown = new HashSet<>();
 
-    public QuickChatFeature(Arena arena, SecretIdentityManager secretIdentityManager) {
+    public QuickChatFeature(
+            Arena arena,
+            SecretIdentityManager secretIdentityManager,
+            Supplier<? extends Collection<UUID>> alivePlayersSupplier
+    ) {
         this.arena = arena;
         this.secretIdentityManager = secretIdentityManager;
+        this.alivePlayersSupplier = alivePlayersSupplier;
     }
 
     public boolean handleInteract(Player player, String legacyName) {
@@ -53,7 +63,10 @@ public class QuickChatFeature {
             return true;
         }
         closeChatMenu(player);
-        sendQuickChatMessage(player, resolveQuickChatMessage(player, legacyName, message));
+        String resolvedMessage = resolveQuickChatMessage(player, legacyName, message);
+        if (resolvedMessage != null) {
+            sendQuickChatMessage(player, resolvedMessage);
+        }
         return true;
     }
 
@@ -107,20 +120,21 @@ public class QuickChatFeature {
         if (!QuickChatMenu.LIME_DYE_NAME.equals(legacyName)) {
             return ChatColor.stripColor(defaultMessage);
         }
-        List<String> nearbyNames = findNearbyPlayerNames(sender, 15.0);
+        List<String> nearbyNames = findNearbyAlivePlayerNames(sender, 15.0);
         if (nearbyNames.isEmpty()) {
-            return "I am next to nobody!";
+            sendNoDeadBodyNearbyMessage(sender);
+            return null;
         }
         return "I am next to " + String.join("&7, ", nearbyNames) + "&7!";
     }
 
-    private List<String> findNearbyPlayerNames(Player sender, double radius) {
+    private List<String> findNearbyAlivePlayerNames(Player sender, double radius) {
         List<String> names = new ArrayList<>();
         if (sender == null || sender.getWorld() == null) {
             return names;
         }
         double radiusSquared = radius * radius;
-        for (UUID playerId : arena.getActivePlayers()) {
+        for (UUID playerId : resolveAlivePlayerIds()) {
             if (sender.getUniqueId().equals(playerId)) {
                 continue;
             }
@@ -136,6 +150,24 @@ public class QuickChatFeature {
             }
         }
         return names;
+    }
+
+    private Collection<UUID> resolveAlivePlayerIds() {
+        if (alivePlayersSupplier == null) {
+            return arena.getActivePlayers();
+        }
+        Collection<UUID> alivePlayers = alivePlayersSupplier.get();
+        if (alivePlayers == null) {
+            return List.of();
+        }
+        return alivePlayers;
+    }
+
+    private void sendNoDeadBodyNearbyMessage(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.sendMessage(ChatColor.translateAlternateColorCodes('&', NO_DEAD_BODY_NEARBY_MESSAGE));
     }
 
     private String resolveChatName(Player player) {

@@ -60,7 +60,7 @@ public class GameSession {
         this.arena = arena;
         this.gunFeature = gunFeature;
         this.knifeFeature = knifeFeature;
-        this.quickChatFeature = new QuickChatFeature(arena, gameManager.getSecretIdentityManager());
+        this.quickChatFeature = new QuickChatFeature(arena, gameManager.getSecretIdentityManager(), this::getAlivePlayers);
         this.identityService = new IdentityService(gameManager);
         this.loadoutFeature = new LoadoutFeature(gameManager);
         this.aliveDisplayService = new AliveDisplayService(arena, identityService);
