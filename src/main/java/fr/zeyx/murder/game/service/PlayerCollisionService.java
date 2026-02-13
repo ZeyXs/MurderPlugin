@@ -47,6 +47,17 @@ public final class PlayerCollisionService {
         }
     }
 
+    public static void clearAll() {
+        if (Bukkit.getScoreboardManager() == null) {
+            return;
+        }
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        Team team = scoreboard.getTeam(NO_COLLISION_TEAM);
+        if (team != null) {
+            team.unregister();
+        }
+    }
+
     private static Team getOrCreateNoCollisionTeam() {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         Team team = scoreboard.getTeam(NO_COLLISION_TEAM);

@@ -34,6 +34,15 @@ public class StartingArenaState extends WaitingArenaState {
         arenaStartingTask.runTaskTimer(MurderPlugin.getInstance(), 0, 20);
     }
 
+    @Override
+    public void onDisable() {
+        if (arenaStartingTask != null) {
+            arenaStartingTask.cancel();
+            arenaStartingTask = null;
+        }
+        super.onDisable();
+    }
+
     public ArenaStartingTask getArenaStartingTask() {
         return arenaStartingTask;
     }

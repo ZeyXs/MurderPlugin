@@ -1,5 +1,6 @@
 package fr.zeyx.murder.arena;
 
+import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.state.ActiveArenaState;
 import fr.zeyx.murder.arena.state.InitArenaState;
 import fr.zeyx.murder.arena.state.StartingArenaState;
@@ -82,7 +83,10 @@ public class Arena {
     public void setArenaSate(ArenaState arenaState) {
         this.arenaState.onDisable();
         this.arenaState = arenaState;
-        arenaState.onEnable();
+        MurderPlugin plugin = MurderPlugin.getInstance();
+        if (plugin != null && plugin.isEnabled()) {
+            arenaState.onEnable();
+        }
     }
 
     public ArenaState getArenaState() {
@@ -181,9 +185,13 @@ public class Arena {
 
     public void reset(GameManager gameManager) {
         setArenaSate(new WaitingArenaState(gameManager, this));
-        for (UUID playerId : activePlayers) {
+        for (UUID playerId : new ArrayList<>(activePlayers)) {
             Player player = Bukkit.getPlayer(playerId);
-            if (player != null) removePlayer(player, gameManager);
+            if (player != null) {
+                removePlayer(player, gameManager);
+                continue;
+            }
+            activePlayers.remove(playerId);
         }
     }
 

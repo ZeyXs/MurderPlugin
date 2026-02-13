@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.ArrayList;
 
 public class SetupWizardManager implements Listener {
 
@@ -92,6 +93,17 @@ public class SetupWizardManager implements Listener {
         gameManager.getConfigurationManager().loadRollback(player);
 
         player.sendActionBar(Component.empty());
+    }
+
+    public void shutdown() {
+        for (UUID playerId : new ArrayList<>(inWizard.keySet())) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null) {
+                endWizard(player);
+                continue;
+            }
+            inWizard.remove(playerId);
+        }
     }
 
     public boolean inWizard(Player player) {

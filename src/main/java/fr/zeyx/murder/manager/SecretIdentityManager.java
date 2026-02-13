@@ -480,20 +480,27 @@ public class SecretIdentityManager implements Listener {
     }
 
     private void scheduleHungerRestore(Player player, int foodLevel, float saturation, float exhaustion) {
-        Bukkit.getScheduler().runTaskLater(MurderPlugin.getInstance(), task -> {
-            if (!player.isOnline()) {
-                return;
-            }
-            int expectedFoodLevel = resolveExpectedFoodLevel(player, foodLevel);
-            player.setFoodLevel(expectedFoodLevel);
-            if (expectedFoodLevel == MURDERER_FOOD_LEVEL || expectedFoodLevel == NON_MURDERER_FOOD_LEVEL) {
-                player.setSaturation(0f);
-                player.setExhaustion(0f);
-                return;
-            }
-            player.setSaturation(saturation);
-            player.setExhaustion(exhaustion);
-        }, 1L);
+        MurderPlugin plugin = MurderPlugin.getInstance();
+        if (plugin == null || !plugin.isEnabled()) {
+            applyHungerRestoreNow(player, foodLevel, saturation, exhaustion);
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, task -> applyHungerRestoreNow(player, foodLevel, saturation, exhaustion), 1L);
+    }
+
+    private void applyHungerRestoreNow(Player player, int foodLevel, float saturation, float exhaustion) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        int expectedFoodLevel = resolveExpectedFoodLevel(player, foodLevel);
+        player.setFoodLevel(expectedFoodLevel);
+        if (expectedFoodLevel == MURDERER_FOOD_LEVEL || expectedFoodLevel == NON_MURDERER_FOOD_LEVEL) {
+            player.setSaturation(0f);
+            player.setExhaustion(0f);
+            return;
+        }
+        player.setSaturation(saturation);
+        player.setExhaustion(exhaustion);
     }
 
     private int resolveExpectedFoodLevel(Player player, int fallbackFoodLevel) {
@@ -656,7 +663,11 @@ public class SecretIdentityManager implements Listener {
         UUID playerId = player.getUniqueId();
         currentIdentityProfiles.put(playerId, targetProfile.clone());
 
-        Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), () -> {
+        MurderPlugin plugin = MurderPlugin.getInstance();
+        if (plugin == null || !plugin.isEnabled()) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(plugin, () -> {
             if (!player.isOnline()) {
                 return;
             }
@@ -695,7 +706,11 @@ public class SecretIdentityManager implements Listener {
             return;
         }
         UUID playerId = player.getUniqueId();
-        Bukkit.getScheduler().runTaskLater(MurderPlugin.getInstance(), task -> {
+        MurderPlugin plugin = MurderPlugin.getInstance();
+        if (plugin == null || !plugin.isEnabled()) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, task -> {
             if (!player.isOnline()) {
                 return;
             }

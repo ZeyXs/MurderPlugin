@@ -44,6 +44,17 @@ public final class NametagService {
         }
     }
 
+    public static void clearAll() {
+        if (Bukkit.getScoreboardManager() == null) {
+            return;
+        }
+        Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        Team team = scoreboard.getTeam(HIDDEN_NAMETAG_TEAM);
+        if (team != null) {
+            team.unregister();
+        }
+    }
+
     private static Team getOrCreateHiddenTeam() {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
         Team team = scoreboard.getTeam(HIDDEN_NAMETAG_TEAM);

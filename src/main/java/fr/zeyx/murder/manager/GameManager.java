@@ -3,13 +3,16 @@ package fr.zeyx.murder.manager;
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.setup.SetupWizardManager;
+import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.service.ArenaTabListService;
+import fr.zeyx.murder.game.service.NametagService;
+import fr.zeyx.murder.game.service.PlayerCollisionService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 
 import java.util.ArrayList;
-import java.util.UUID;
+import java.util.List;
 
 public class GameManager {
 
@@ -69,21 +72,37 @@ public class GameManager {
 
     public void shutdown() {
         arenaTabListService.shutdown();
+        setupWizardManager.shutdown();
+        resetAllArenasForShutdown();
+        arenaManager.resetVoteSession();
+        corpseManager.clearCorpses();
+        restoreGlobalPlayerState();
+        NametagService.clearAll();
+        PlayerCollisionService.clearAll();
+    }
+
+    private void resetAllArenasForShutdown() {
         for (Arena arena : new ArrayList<>(arenaManager.getArenas())) {
             if (arena == null) {
                 continue;
             }
-            for (UUID playerId : new ArrayList<>(arena.getActivePlayers())) {
-                Player player = Bukkit.getPlayer(playerId);
-                if (player != null) {
-                    arena.removePlayer(player, this);
-                    continue;
-                }
-                // Player already offline, remove stale arena entry.
-                arena.getActivePlayers().remove(playerId);
-            }
+            arena.reset(this);
+            arena.getActivePlayers().clear();
         }
-        corpseManager.clearCorpses();
+    }
+
+    private void restoreGlobalPlayerState() {
+        List<Player> onlinePlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
+        for (Player player : onlinePlayers) {
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+            secretIdentityManager.resetIdentity(player);
+            GameSession.showNametag(player);
+            PlayerCollisionService.restore(player);
+            scoreboardManager.clear(player);
+            player.setCustomChatCompletions(List.of());
+        }
     }
 
     private void registerListeners() {
