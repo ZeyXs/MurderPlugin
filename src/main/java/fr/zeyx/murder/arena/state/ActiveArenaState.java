@@ -99,16 +99,23 @@ public class ActiveArenaState extends PlayingArenaState {
         if (!event.hasItem()) {
             return;
         }
-        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+        Action action = event.getAction();
+        boolean isRightClick = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
+        boolean isLeftClick = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
+        if (!isRightClick && !isLeftClick) {
             return;
         }
-        if (!event.getItem().hasItemMeta()) {
-            return;
-        }
-        if (knifeFeature.handleThrowInteract(event, player, session)) {
+
+        if (isRightClick && knifeFeature.handleThrowInteract(event, player, session)) {
             return;
         }
         if (gunFeature.handleInteract(event, player, session)) {
+            return;
+        }
+        if (!isRightClick) {
+            return;
+        }
+        if (!event.getItem().hasItemMeta()) {
             return;
         }
 
