@@ -126,6 +126,7 @@ public class GameSession {
         spectatorFeature.refreshPlayerVisibility();
         registerCurrentMurdererIdentity();
         switchIdentityFeature.updateSwitchIdentityItem(murdererId, alivePlayers, roundParticipants);
+        gameManager.getArenaTabListService().refreshNow();
     }
 
     public void endGame() {
@@ -142,6 +143,7 @@ public class GameSession {
                 hasMurdererWon(),
                 spectatorFeature
         );
+        gameManager.getArenaTabListService().refreshNow();
     }
 
     public List<UUID> getAlivePlayers() {
@@ -178,6 +180,7 @@ public class GameSession {
         aliveDisplayService.updateAliveCountDisplays(alivePlayers, murdererId);
         spectatorFeature.updateSpectatorBoards();
         spectatorFeature.refreshPlayerVisibility();
+        gameManager.getArenaTabListService().refreshNow();
     }
 
     public boolean handleInteract(Player player, Component itemName, String legacyName) {
@@ -493,6 +496,7 @@ public class GameSession {
         cacheIdentityDisplayName(playerId);
         registerCurrentMurdererIdentity();
         aliveDisplayService.updateChatCompletionsForActivePlayers();
+        gameManager.getArenaTabListService().refreshNow();
     }
 
     private String resolveRealPlayerName(UUID playerId) {

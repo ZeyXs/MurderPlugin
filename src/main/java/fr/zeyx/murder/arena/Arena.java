@@ -160,6 +160,7 @@ public class Arena {
         if (activePlayers.isEmpty()) {
             gameManager.getArenaManager().resetVoteSession();
         }
+        gameManager.getArenaTabListService().refreshNow();
     }
 
     public boolean isPlaying(Player player) {

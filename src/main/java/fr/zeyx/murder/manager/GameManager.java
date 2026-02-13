@@ -3,6 +3,7 @@ package fr.zeyx.murder.manager;
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.setup.SetupWizardManager;
+import fr.zeyx.murder.game.service.ArenaTabListService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
@@ -17,6 +18,7 @@ public class GameManager {
     private final SetupWizardManager setupWizardManager;
     private final ScoreboardManager scoreboardManager;
     private final SecretIdentityManager secretIdentityManager;
+    private final ArenaTabListService arenaTabListService;
     private final CorpseManager corpseManager;
     private final GunManager gunManager;
 
@@ -26,9 +28,11 @@ public class GameManager {
         this.setupWizardManager = new SetupWizardManager(this);
         this.scoreboardManager = new ScoreboardManager();
         this.secretIdentityManager = new SecretIdentityManager(configurationManager, arenaManager);
+        this.arenaTabListService = new ArenaTabListService(arenaManager, secretIdentityManager);
         this.corpseManager = new CorpseManager(MurderPlugin.getInstance());
         this.gunManager = new GunManager();
         registerListeners();
+        arenaTabListService.start();
     }
 
     public ArenaManager getArenaManager() {
@@ -51,6 +55,10 @@ public class GameManager {
         return secretIdentityManager;
     }
 
+    public ArenaTabListService getArenaTabListService() {
+        return arenaTabListService;
+    }
+
     public CorpseManager getCorpseManager() {
         return corpseManager;
     }
@@ -60,6 +68,7 @@ public class GameManager {
     }
 
     public void shutdown() {
+        arenaTabListService.shutdown();
         for (Arena arena : new ArrayList<>(arenaManager.getArenas())) {
             if (arena == null) {
                 continue;
@@ -82,6 +91,7 @@ public class GameManager {
         pluginManager.registerEvents(setupWizardManager, MurderPlugin.getInstance());
         pluginManager.registerEvents(scoreboardManager, MurderPlugin.getInstance());
         pluginManager.registerEvents(secretIdentityManager, MurderPlugin.getInstance());
+        pluginManager.registerEvents(arenaTabListService, MurderPlugin.getInstance());
     }
 
 }
