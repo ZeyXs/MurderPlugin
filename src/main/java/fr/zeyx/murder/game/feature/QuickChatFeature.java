@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 
 public class QuickChatFeature {
 
-    private static final String NO_DEAD_BODY_NEARBY_MESSAGE = "&cNo dead body nearby!";
+    private static final String NO_DEAD_BODY_NEARBY_MESSAGE = "&cYou are not near anyone!";
 
     private final Arena arena;
     private final SecretIdentityManager secretIdentityManager;
