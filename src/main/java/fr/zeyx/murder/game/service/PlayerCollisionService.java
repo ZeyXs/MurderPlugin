@@ -9,18 +9,20 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
-public final class NametagService {
+public final class PlayerCollisionService {
 
-    private static final String HIDDEN_NAMETAG_TEAM = "murder_hide";
+    private static final String NO_COLLISION_TEAM = "murder_nocollide";
 
-    private NametagService() {
+    private PlayerCollisionService() {
     }
 
-    public static void hide(Player player) {
+    public static void disableForArena(Player player) {
         if (player == null || Bukkit.getScoreboardManager() == null) {
             return;
         }
-        Team team = getOrCreateHiddenTeam();
+        // Keep projectile/entity hitboxes fully active; collision suppression is handled via team rule.
+        player.setCollidable(true);
+        Team team = getOrCreateNoCollisionTeam();
         for (String entry : collectEntries(player)) {
             if (!team.hasEntry(entry)) {
                 team.addEntry(entry);
@@ -28,12 +30,13 @@ public final class NametagService {
         }
     }
 
-    public static void show(Player player) {
+    public static void restore(Player player) {
         if (player == null || Bukkit.getScoreboardManager() == null) {
             return;
         }
+        player.setCollidable(true);
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
-        Team team = scoreboard.getTeam(HIDDEN_NAMETAG_TEAM);
+        Team team = scoreboard.getTeam(NO_COLLISION_TEAM);
         if (team == null) {
             return;
         }
@@ -44,13 +47,12 @@ public final class NametagService {
         }
     }
 
-    private static Team getOrCreateHiddenTeam() {
+    private static Team getOrCreateNoCollisionTeam() {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
-        Team team = scoreboard.getTeam(HIDDEN_NAMETAG_TEAM);
+        Team team = scoreboard.getTeam(NO_COLLISION_TEAM);
         if (team == null) {
-            team = scoreboard.registerNewTeam(HIDDEN_NAMETAG_TEAM);
+            team = scoreboard.registerNewTeam(NO_COLLISION_TEAM);
         }
-        team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
         team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
         return team;
     }

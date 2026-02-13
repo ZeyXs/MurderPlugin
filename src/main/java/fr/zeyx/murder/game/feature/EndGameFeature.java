@@ -4,6 +4,7 @@ import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.game.service.NametagService;
+import fr.zeyx.murder.game.service.PlayerCollisionService;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.ChatUtil;
 import net.kyori.adventure.text.Component;
@@ -62,6 +63,7 @@ public class EndGameFeature {
             }
             NametagService.show(player);
             gameManager.getSecretIdentityManager().resetIdentity(player);
+            PlayerCollisionService.disableForArena(player);
         }
     }
 

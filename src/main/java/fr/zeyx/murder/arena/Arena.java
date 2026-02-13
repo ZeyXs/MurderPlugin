@@ -5,6 +5,7 @@ import fr.zeyx.murder.arena.state.InitArenaState;
 import fr.zeyx.murder.arena.state.StartingArenaState;
 import fr.zeyx.murder.arena.state.WaitingArenaState;
 import fr.zeyx.murder.game.GameSession;
+import fr.zeyx.murder.game.service.PlayerCollisionService;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.BookUtil;
 import fr.zeyx.murder.util.ChatUtil;
@@ -91,6 +92,7 @@ public class Arena {
     public void addPlayer(Player player, GameManager gameManager) {
         if (arenaState instanceof InitArenaState) setArenaSate(new WaitingArenaState(gameManager, this));
         activePlayers.add(player.getUniqueId());
+        PlayerCollisionService.disableForArena(player);
 
         gameManager.getConfigurationManager().saveRollback(player);
         player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
@@ -141,6 +143,7 @@ public class Arena {
         gameManager.getConfigurationManager().loadRollback(player);
         gameManager.getSecretIdentityManager().resetIdentity(player);
         GameSession.showNametag(player);
+        PlayerCollisionService.restore(player);
         gameManager.getScoreboardManager().clear(player);
         updateLobbyBoards(gameManager);
 
