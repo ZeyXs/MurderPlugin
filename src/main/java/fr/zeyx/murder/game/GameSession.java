@@ -30,6 +30,8 @@ import java.util.UUID;
 
 public class GameSession {
 
+    private static final int ROUND_DURATION_SECONDS = 420;
+
     private final GameManager gameManager;
     private final Arena arena;
     private final List<UUID> alivePlayers = new ArrayList<>();
@@ -54,6 +56,8 @@ public class GameSession {
     private UUID detectiveId;
     private UUID murdererKillerId;
     private int murdererKillCount;
+    private int roundTimeLeftSeconds = ROUND_DURATION_SECONDS;
+    private boolean murdererUnsuccessful;
 
     public GameSession(GameManager gameManager, Arena arena, GunFeature gunFeature, KnifeFeature knifeFeature) {
         this.gameManager = gameManager;
@@ -90,6 +94,8 @@ public class GameSession {
     public void start() {
         alivePlayers.clear();
         alivePlayers.addAll(arena.getActivePlayers());
+        roundTimeLeftSeconds = ROUND_DURATION_SECONDS;
+        murdererUnsuccessful = false;
         roundParticipants.clear();
         roundParticipants.addAll(alivePlayers);
         realPlayerNames.clear();
@@ -131,7 +137,7 @@ public class GameSession {
 
     public void endGame() {
         endGameMessenger.sendRoleRevealMessages();
-        endGameMessenger.sendWinnerMessage(murdererId, murdererKillerId);
+        endGameMessenger.sendWinnerMessage(murdererId, murdererKillerId, murdererUnsuccessful);
         spectatorFeature.restoreVisibilityForArenaPlayers();
         spectatorFeature.clearState();
 
@@ -178,7 +184,7 @@ public class GameSession {
         spectatorFeature.onAliveListChanged(playerId);
         aliveDisplayService.updateChatCompletionsForActivePlayers();
         aliveDisplayService.updateAliveCountDisplays(alivePlayers, murdererId);
-        spectatorFeature.updateSpectatorBoards();
+        spectatorFeature.updateSpectatorBoards(roundTimeLeftSeconds);
         spectatorFeature.refreshPlayerVisibility();
         gameManager.getArenaTabListService().refreshNow();
     }
@@ -315,7 +321,16 @@ public class GameSession {
     }
 
     public boolean haveBystandersWon() {
-        return murdererId != null && !alivePlayers.contains(murdererId);
+        return murdererUnsuccessful || (murdererId != null && !alivePlayers.contains(murdererId));
+    }
+
+    public void updateSpectatorBoards(int roundTimeLeftSeconds) {
+        this.roundTimeLeftSeconds = Math.max(0, roundTimeLeftSeconds);
+        spectatorFeature.updateSpectatorBoards(this.roundTimeLeftSeconds);
+    }
+
+    public void markMurdererUnsuccessful() {
+        murdererUnsuccessful = true;
     }
 
     private void assignRoles() {

@@ -55,7 +55,11 @@ public class EndGameMessenger {
         }
     }
 
-    public void sendWinnerMessage(UUID murdererId, UUID murdererKillerId) {
+    public void sendWinnerMessage(UUID murdererId, UUID murdererKillerId, boolean murdererUnsuccessful) {
+        if (murdererUnsuccessful) {
+            arena.sendArenaMessage("&9The murderer was unsuccessful!");
+            return;
+        }
         if (hasMurdererWon(murdererId)) {
             arena.sendArenaMessage("&7The &cmurderer &7has killed everyone!");
             return;

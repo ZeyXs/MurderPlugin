@@ -38,7 +38,6 @@ public class SpectatorFeature {
     private static final String SPECTATOR_TARGET_SELECTOR_LEGACY = ChatColor.translateAlternateColorCodes('&', SPECTATOR_TARGET_SELECTOR_NAME);
     private static final String SPECTATOR_TARGET_SELECTOR_OLD_LEGACY = ChatColor.translateAlternateColorCodes('&', SPECTATOR_TARGET_SELECTOR_OLD_NAME);
     private static final String SPECTATOR_VISIBILITY_TOGGLE_LEGACY = ChatColor.translateAlternateColorCodes('&', SPECTATOR_VISIBILITY_TOGGLE_NAME);
-    private static final int SPECTATOR_TIME_LEFT_SECONDS = 100;
 
     private final GameManager gameManager;
     private final Arena arena;
@@ -114,7 +113,7 @@ public class SpectatorFeature {
         spectatorVisibility.putIfAbsent(playerId, true);
     }
 
-    public void updateSpectatorBoards() {
+    public void updateSpectatorBoards(int roundTimeLeftSeconds) {
         int aliveCount = alivePlayers.size();
         int spectatorCount = getSpectatorCount();
         for (UUID playerId : arena.getActivePlayers()) {
@@ -125,7 +124,7 @@ public class SpectatorFeature {
             if (player == null) {
                 continue;
             }
-            gameManager.getScoreboardManager().showSpectatorBoard(player, SPECTATOR_TIME_LEFT_SECONDS, aliveCount, spectatorCount);
+            gameManager.getScoreboardManager().showSpectatorBoard(player, roundTimeLeftSeconds, aliveCount, spectatorCount);
         }
     }
 
