@@ -7,7 +7,7 @@ import fr.zeyx.murder.gui.EquipmentMenu;
 import fr.zeyx.murder.gui.ProfileMenu;
 import fr.zeyx.murder.gui.TeleportSelectorMenu;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
@@ -171,7 +171,7 @@ public class SpectatorFeature {
     }
 
     private void setSpectatorHotbar(Player player) {
-        player.getInventory().setItem(0, new ItemBuilder(Material.COMPASS).setName(ChatUtil.itemComponent(SPECTATOR_TARGET_SELECTOR_NAME)).toItemStack());
+        player.getInventory().setItem(0, new ItemBuilder(Material.COMPASS).setName(TextUtil.itemComponent(SPECTATOR_TARGET_SELECTOR_NAME)).toItemStack());
         player.getInventory().setItem(3, new ItemBuilder(Material.ENDER_CHEST).setName(arena.SELECT_EQUIPMENT_ITEM).toItemStack());
 
         ItemStack statsHead = new ItemStack(Material.PLAYER_HEAD);
@@ -195,8 +195,8 @@ public class SpectatorFeature {
             killerName = "&fUnknown";
         }
         victim.showTitle(Title.title(
-                ChatUtil.component("&cYOU DIED!"),
-                ChatUtil.component("&cKilled by: " + killerName),
+                TextUtil.component("&cYOU DIED!"),
+                TextUtil.component("&cKilled by: " + killerName),
                 Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofMillis(500))
         ));
     }
@@ -222,14 +222,14 @@ public class SpectatorFeature {
         spectatorVisibility.put(spectatorId, enabled);
         updateVisibilityToggleItem(spectator, enabled);
         applyVisibilityForViewer(spectator);
-        spectator.sendMessage(ChatUtil.prefixed(enabled
+        spectator.sendMessage(TextUtil.prefixed(enabled
                 ? "&7Spectators are now &avisible&7."
                 : "&7Spectators are now &chidden&7."));
     }
 
     private void updateVisibilityToggleItem(Player spectator, boolean visible) {
         Material material = visible ? Material.REDSTONE : Material.GUNPOWDER;
-        spectator.getInventory().setItem(7, new ItemBuilder(material).setName(ChatUtil.itemComponent(SPECTATOR_VISIBILITY_TOGGLE_NAME)).toItemStack());
+        spectator.getInventory().setItem(7, new ItemBuilder(material).setName(TextUtil.itemComponent(SPECTATOR_VISIBILITY_TOGGLE_NAME)).toItemStack());
     }
 
     private boolean isTeleportSelectorName(String legacyName) {

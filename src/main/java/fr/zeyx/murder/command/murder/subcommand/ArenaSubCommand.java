@@ -5,7 +5,7 @@ import fr.zeyx.murder.command.CommandArgs;
 import fr.zeyx.murder.command.CommandResult;
 import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -30,13 +30,13 @@ public class ArenaSubCommand implements PlayerSubCommand {
 
         if (args[0].equalsIgnoreCase("list")) {
             if (gameManager.getArenaManager().getArenas().isEmpty()) {
-                player.sendMessage(ChatUtil.prefixed("&cNo arenas have been setup."));
+                player.sendMessage(TextUtil.prefixed("&cNo arenas have been setup."));
                 return CommandResult.FAILURE;
             }
 
-            player.sendMessage(ChatUtil.prefixed("&7Arenas list:"));
+            player.sendMessage(TextUtil.prefixed("&7Arenas list:"));
             for (Arena arena : gameManager.getArenaManager().getArenas()) {
-                player.sendMessage(ChatUtil.prefixed("&7- &a" + arena.getName()));
+                player.sendMessage(TextUtil.prefixed("&7- &a" + arena.getName()));
             }
 
             return CommandResult.SUCCESS;
@@ -45,7 +45,7 @@ public class ArenaSubCommand implements PlayerSubCommand {
         if (args[0].equalsIgnoreCase("create")) {
             // TODO: Better permission system for all subcommands.
             if (!player.hasPermission("murder.admin")) {
-                player.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
+                player.sendMessage(TextUtil.prefixed("&cYou don't have permission to use this command."));
                 return CommandResult.FAILURE;
             }
             gameManager.getSetupWizardManager().startWizard(player, null);
@@ -54,7 +54,7 @@ public class ArenaSubCommand implements PlayerSubCommand {
 
         if (args[0].equalsIgnoreCase("edit")) {
             if (!player.hasPermission("murder.admin")) {
-                player.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
+                player.sendMessage(TextUtil.prefixed("&cYou don't have permission to use this command."));
                 return CommandResult.FAILURE;
             }
 
@@ -62,7 +62,7 @@ public class ArenaSubCommand implements PlayerSubCommand {
                 return CommandResult.INVALID_USAGE;
             }
 
-            player.sendMessage(ChatUtil.prefixed("&cThis command is currently disabled."));
+            player.sendMessage(TextUtil.prefixed("&cThis command is currently disabled."));
             return CommandResult.FAILURE;
 
             /*
@@ -79,7 +79,7 @@ public class ArenaSubCommand implements PlayerSubCommand {
 
         if (args[0].equalsIgnoreCase("remove")) {
             if (!player.hasPermission("murder.admin")) {
-                player.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
+                player.sendMessage(TextUtil.prefixed("&cYou don't have permission to use this command."));
                 return CommandResult.FAILURE;
             }
 
@@ -90,14 +90,14 @@ public class ArenaSubCommand implements PlayerSubCommand {
             String arenaName = CommandArgs.joinArgs(args, 1);
             Optional<Arena> optionalArena = gameManager.getArenaManager().findArena(arenaName);
             if (optionalArena.isEmpty()) {
-                player.sendMessage(ChatUtil.prefixed("&cNo arena by that name exists."));
+                player.sendMessage(TextUtil.prefixed("&cNo arena by that name exists."));
                 return CommandResult.FAILURE;
             }
 
             Arena arena = optionalArena.get();
             gameManager.getArenaManager().removeArena(arena);
             gameManager.getConfigurationManager().removeArena(arena);
-            player.sendMessage(ChatUtil.prefixed("&aArena successfully removed."));
+            player.sendMessage(TextUtil.prefixed("&aArena successfully removed."));
             return CommandResult.SUCCESS;
         }
 

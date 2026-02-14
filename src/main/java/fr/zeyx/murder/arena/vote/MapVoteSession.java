@@ -1,7 +1,7 @@
 package fr.zeyx.murder.arena.vote;
 
 import fr.zeyx.murder.arena.Arena;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -103,20 +103,20 @@ public class MapVoteSession {
             return;
         }
         if (candidates.isEmpty()) {
-            player.sendMessage(ChatUtil.prefixed("&cNo maps are available to vote."));
+            player.sendMessage(TextUtil.prefixed("&cNo maps are available to vote."));
             return;
         }
         if (locked && selectedArena != null) {
-            player.sendMessage(ChatUtil.prefixed("&7You are now playing on &a" + selectedArena.getDisplayName()));
+            player.sendMessage(TextUtil.prefixed("&7You are now playing on &a" + selectedArena.getDisplayName()));
             return;
         }
 
-        player.sendMessage(ChatUtil.prefixed("&7If you notice a bug or have a suggestion, post it on the site at &bserver.net"));
-        player.sendMessage(ChatUtil.prefixed("&6Vote for the next map! &9(click to vote)"));
+        player.sendMessage(TextUtil.prefixed("&7If you notice a bug or have a suggestion, post it on the site at &bserver.net"));
+        player.sendMessage(TextUtil.prefixed("&6Vote for the next map! &9(click to vote)"));
         for (Arena arena : candidates) {
-            Component map = ChatUtil.prefixed("&a" + arena.getDisplayName())
+            Component map = TextUtil.prefixed("&a" + arena.getDisplayName())
                     .clickEvent(ClickEvent.runCommand("/murder vote " + arena.getName()))
-                    .hoverEvent(HoverEvent.showText(ChatUtil.component("&fVote for &a" + arena.getDisplayName())));
+                    .hoverEvent(HoverEvent.showText(TextUtil.component("&fVote for &a" + arena.getDisplayName())));
             player.sendMessage(map);
         }
 

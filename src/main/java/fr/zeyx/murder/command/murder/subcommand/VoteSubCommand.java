@@ -6,7 +6,7 @@ import fr.zeyx.murder.command.CommandResult;
 import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.arena.vote.MapVoteSession;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -22,13 +22,13 @@ public class VoteSubCommand implements PlayerSubCommand {
     @Override
     public CommandResult execute(Player player, String[] args) {
         if (gameManager.getArenaManager().getCurrentArena(player).isEmpty()) {
-            player.sendMessage(ChatUtil.prefixed("&7You are not in an arena."));
+            player.sendMessage(TextUtil.prefixed("&7You are not in an arena."));
             return CommandResult.FAILURE;
         }
 
         MapVoteSession voteSession = gameManager.getArenaManager().getVoteSession();
         if (voteSession == null) {
-            player.sendMessage(ChatUtil.prefixed("&7Voting is not available right now."));
+            player.sendMessage(TextUtil.prefixed("&7Voting is not available right now."));
             return CommandResult.FAILURE;
         }
 
@@ -38,25 +38,25 @@ public class VoteSubCommand implements PlayerSubCommand {
         }
 
         if (voteSession.isLocked()) {
-            player.sendMessage(ChatUtil.prefixed("&7Voting is locked."));
+            player.sendMessage(TextUtil.prefixed("&7Voting is locked."));
             return CommandResult.FAILURE;
         }
 
         String arenaName = CommandArgs.joinArgs(args, 0);
         Arena arena = voteSession.findCandidate(arenaName);
         if (arena == null) {
-            player.sendMessage(ChatUtil.prefixed("&7That map is not in the current vote."));
+            player.sendMessage(TextUtil.prefixed("&7That map is not in the current vote."));
             return CommandResult.FAILURE;
         }
 
         Arena previous = voteSession.getVote(player.getUniqueId());
         if (arena.equals(previous)) {
-            player.sendMessage(ChatUtil.prefixed("&7You already voted for &a" + arena.getDisplayName() + "&7."));
+            player.sendMessage(TextUtil.prefixed("&7You already voted for &a" + arena.getDisplayName() + "&7."));
             return CommandResult.FAILURE;
         }
 
         voteSession.setVote(player.getUniqueId(), arena);
-        player.sendMessage(ChatUtil.color("&7You voted for &a" + arena.getDisplayName()));
+        player.sendMessage(TextUtil.color("&7You voted for &a" + arena.getDisplayName()));
         return CommandResult.SUCCESS;
     }
 

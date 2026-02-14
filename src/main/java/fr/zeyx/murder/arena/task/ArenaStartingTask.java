@@ -5,7 +5,7 @@ import fr.zeyx.murder.arena.state.ActiveArenaState;
 import fr.zeyx.murder.arena.state.WaitingArenaState;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.arena.vote.MapVoteSession;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -50,7 +50,7 @@ public class ArenaStartingTask extends BukkitRunnable {
         for (UUID playerId : lobbyArena.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) continue;
-            player.sendActionBar(ChatUtil.component("&f&lJoining Map in &r&7» &b&l" + timeUntilStart + " second" + (timeUntilStart > 1 ? "s" : "")));
+            player.sendActionBar(TextUtil.component("&f&lJoining Map in &r&7» &b&l" + timeUntilStart + " second" + (timeUntilStart > 1 ? "s" : "")));
             if (timeUntilStart <= 5 && timeUntilStart >= 1) {
                 player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
             }

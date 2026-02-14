@@ -6,7 +6,7 @@ import fr.zeyx.murder.arena.state.ActiveArenaState;
 import fr.zeyx.murder.command.CommandResult;
 import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.entity.Player;
 
 import java.util.Optional;
@@ -22,7 +22,7 @@ public class JoinSubCommand implements PlayerSubCommand {
     @Override
     public CommandResult execute(Player player, String[] args) {
         if (gameManager.getArenaManager().getArenas().isEmpty()) {
-            player.sendMessage(ChatUtil.prefixed("&cThere are no arenas to join."));
+            player.sendMessage(TextUtil.prefixed("&cThere are no arenas to join."));
             return CommandResult.FAILURE;
         }
 
@@ -32,18 +32,18 @@ public class JoinSubCommand implements PlayerSubCommand {
 
         Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
         if (currentArena.isPresent()) {
-            player.sendMessage(ChatUtil.prefixed("&cYou are already in an arena."));
+            player.sendMessage(TextUtil.prefixed("&cYou are already in an arena."));
             return CommandResult.FAILURE;
         }
 
         if (gameManager.getConfigurationManager().getLobbyLocation() == null) {
-            player.sendMessage(ChatUtil.prefixed("&cLobby location is not set."));
+            player.sendMessage(TextUtil.prefixed("&cLobby location is not set."));
             return CommandResult.FAILURE;
         }
 
         Arena arena = gameManager.getArenaManager().getArenas().getFirst();
         if (arena.getArenaState() instanceof ActiveArenaState) {
-            player.sendMessage(ChatUtil.prefixed("&cThe game is already running."));
+            player.sendMessage(TextUtil.prefixed("&cThe game is already running."));
             return CommandResult.FAILURE;
         }
 

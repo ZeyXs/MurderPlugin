@@ -1,7 +1,7 @@
 package fr.zeyx.murder.manager;
 
 import fr.zeyx.murder.MurderPlugin;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -27,7 +27,7 @@ public class GunManager {
     }
 
     public ItemStack createGunItem() {
-        return createGunItemWithName(ChatUtil.itemComponent(DETECTIVE_GUN_NAME, true));
+        return createGunItemWithName(TextUtil.itemComponent(DETECTIVE_GUN_NAME, true));
     }
 
     public ItemStack createGunItemVersion(int version) {
@@ -35,7 +35,7 @@ public class GunManager {
         if (safeVersion <= 1) {
             return createGunItem();
         }
-        return createGunItemWithName(ChatUtil.itemComponent("&9Gun v" + safeVersion + ".0"));
+        return createGunItemWithName(TextUtil.itemComponent("&9Gun v" + safeVersion + ".0"));
     }
 
     public boolean isGunItem(ItemStack item) {
@@ -47,7 +47,7 @@ public class GunManager {
         if (marker != null && marker == (byte) 1) {
             return true;
         }
-        return ChatUtil.itemComponent(DETECTIVE_GUN_NAME, true).equals(meta.displayName());
+        return TextUtil.itemComponent(DETECTIVE_GUN_NAME, true).equals(meta.displayName());
     }
 
     public void markGunProjectile(Projectile projectile) {

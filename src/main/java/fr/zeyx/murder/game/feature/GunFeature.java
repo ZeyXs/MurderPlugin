@@ -5,7 +5,7 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -404,7 +404,7 @@ public class GunFeature {
         }
         if (isInnocent(shooterRole) && isInnocent(victimRole)) {
             arena.sendArenaMessage(shooterIdentity + " &7shot the innocent bystander " + victimIdentity + "&7!");
-            shooter.sendMessage(ChatUtil.component("&4Continuing to kill bystanders will make it harder for you to become the murderer or to get a gun!"));
+            shooter.sendMessage(TextUtil.component("&4Continuing to kill bystanders will make it harder for you to become the murderer or to get a gun!"));
             applyInnocentFriendlyFirePenalty(shooter);
         }
     }

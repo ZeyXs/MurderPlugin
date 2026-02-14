@@ -9,7 +9,7 @@ import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.service.PlayerCollisionService;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.util.BookUtil;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
@@ -32,11 +32,11 @@ public class Arena {
     private List<UUID> activePlayers;
     private ArenaState arenaState;
 
-    public final Component HOW_TO_PLAY_ITEM = ChatUtil.itemComponent("&6&lHow to Play&r&7 \u2022 Right Click");
-    public final Component SELECT_EQUIPMENT_ITEM = ChatUtil.itemComponent("&2&lSelect Equipment&r&7 \u2022 Right Click");
-    public final Component STORE_ITEM = ChatUtil.itemComponent("&b&lStore&r&7 \u2022 Right Click");
-    public final Component VIEW_STATS_ITEM = ChatUtil.itemComponent("&c&lView Stats&r&7 \u2022 Right Click");
-    public final Component LEAVE_ITEM = ChatUtil.itemComponent("&e&lLeave&r&7 \u2022 Right Click");
+    public final Component HOW_TO_PLAY_ITEM = TextUtil.itemComponent("&6&lHow to Play&r&7 \u2022 Right Click");
+    public final Component SELECT_EQUIPMENT_ITEM = TextUtil.itemComponent("&2&lSelect Equipment&r&7 \u2022 Right Click");
+    public final Component STORE_ITEM = TextUtil.itemComponent("&b&lStore&r&7 \u2022 Right Click");
+    public final Component VIEW_STATS_ITEM = TextUtil.itemComponent("&c&lView Stats&r&7 \u2022 Right Click");
+    public final Component LEAVE_ITEM = TextUtil.itemComponent("&e&lLeave&r&7 \u2022 Right Click");
 
     public Arena(
             String name,
@@ -178,7 +178,7 @@ public class Arena {
         for (UUID playerId : this.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null) {
-                player.sendMessage(ChatUtil.prefixed(message));
+                player.sendMessage(TextUtil.prefixed(message));
             }
         }
     }

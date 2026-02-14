@@ -5,7 +5,7 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.QuickChatMenu;
 import fr.zeyx.murder.game.Role;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -44,7 +44,7 @@ public class EmeraldFeature {
     private static final String MURDERER_PICKUP_MESSAGE = "&aYou found an emerald!";
     private static final String INNOCENT_PICKUP_MESSAGE_TEMPLATE = "&7You found an emerald! &a(%d/5)";
     private static final String GUN_UPGRADE_MESSAGE = "&aA villager swapped your emeralds for an upgraded weapon!";
-    private static final Component EMERALD_COMPONENT_NAME = ChatUtil.itemComponent(EMERALD_ITEM_NAME, false);
+    private static final Component EMERALD_COMPONENT_NAME = TextUtil.itemComponent(EMERALD_ITEM_NAME, false);
 
     private final Arena arena;
     private final GunFeature gunFeature;
@@ -127,9 +127,9 @@ public class EmeraldFeature {
 
         Role role = session.getRole(playerId);
         if (role == Role.MURDERER) {
-            player.sendMessage(ChatUtil.component(MURDERER_PICKUP_MESSAGE));
+            player.sendMessage(TextUtil.component(MURDERER_PICKUP_MESSAGE));
         } else if (role == Role.BYSTANDER || role == Role.DETECTIVE) {
-            player.sendMessage(ChatUtil.component(String.format(INNOCENT_PICKUP_MESSAGE_TEMPLATE, emeraldCount)));
+            player.sendMessage(TextUtil.component(String.format(INNOCENT_PICKUP_MESSAGE_TEMPLATE, emeraldCount)));
         }
 
         maybeUpgradeGunCooldown(player, session, emeraldCount);
@@ -225,7 +225,7 @@ public class EmeraldFeature {
             syncEmeraldSlot(player, getEmeraldCount(playerId));
             return;
         }
-        player.sendMessage(ChatUtil.component(GUN_UPGRADE_MESSAGE));
+        player.sendMessage(TextUtil.component(GUN_UPGRADE_MESSAGE));
     }
 
     private void spawnRandomEmerald() {

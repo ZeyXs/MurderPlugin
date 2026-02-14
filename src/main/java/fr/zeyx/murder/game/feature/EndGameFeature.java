@@ -6,7 +6,7 @@ import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.game.service.NametagService;
 import fr.zeyx.murder.game.service.PlayerCollisionService;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
@@ -130,7 +130,7 @@ public class EndGameFeature {
             return;
         }
         player.showTitle(Title.title(
-                ChatUtil.component(title),
+                TextUtil.component(title),
                 Component.empty(),
                 Title.Times.times(Duration.ofMillis(250), Duration.ofSeconds(3), Duration.ofMillis(500))
         ));

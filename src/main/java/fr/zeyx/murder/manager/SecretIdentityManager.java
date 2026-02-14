@@ -6,7 +6,7 @@ import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.state.ActiveArenaState;
 import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.Role;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import fr.zeyx.murder.util.MojangUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -167,7 +167,7 @@ public class SecretIdentityManager implements Listener {
         originalListNames.putIfAbsent(playerId, player.playerListName() == null ? Component.text(player.getName()) : player.playerListName());
         originalProfiles.putIfAbsent(playerId, player.getPlayerProfile().clone());
         currentIdentities.put(playerId, identityName);
-        player.playerListName(ChatUtil.component(formatTabListName(playerId, identityName)));
+        player.playerListName(TextUtil.component(formatTabListName(playerId, identityName)));
         return applyIdentityFromCache(player, identityName, requestVersion);
     }
 
@@ -185,7 +185,7 @@ public class SecretIdentityManager implements Listener {
         originalProfiles.putIfAbsent(player.getUniqueId(), player.getPlayerProfile().clone());
         currentIdentities.put(playerId, username);
         currentIdentityProfiles.remove(playerId);
-        player.playerListName(ChatUtil.component(formatTabListName(playerId, username)));
+        player.playerListName(TextUtil.component(formatTabListName(playerId, username)));
 
         if (applyIdentityFromCache(player, username, requestVersion)) {
             return true;
@@ -424,7 +424,7 @@ public class SecretIdentityManager implements Listener {
             UUID playerId = player.getUniqueId();
             currentIdentityColors.put(playerId, palette.get(i % palette.size()));
             originalListNames.putIfAbsent(playerId, player.playerListName() == null ? Component.text(player.getName()) : player.playerListName());
-            player.playerListName(ChatUtil.component(formatTabListName(playerId, player.getName())));
+            player.playerListName(TextUtil.component(formatTabListName(playerId, player.getName())));
         }
     }
 
@@ -682,7 +682,7 @@ public class SecretIdentityManager implements Listener {
             reapplyProfileShortly(player, targetProfile, requestVersion);
             GameSession.hideNametag(player);
             scheduleHungerRestore(player, foodLevel, saturation, exhaustion);
-            player.playerListName(ChatUtil.component(formatTabListName(playerId, identityName)));
+            player.playerListName(TextUtil.component(formatTabListName(playerId, identityName)));
             currentIdentities.put(playerId, identityName);
             currentIdentityProfiles.put(playerId, targetProfile.clone());
         });

@@ -6,7 +6,7 @@ import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.command.SubCommand;
 import fr.zeyx.murder.command.murder.subcommand.*;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -47,14 +47,14 @@ public class MurderBaseCommand implements CommandExecutor {
         String[] subCommandArgs = Arrays.copyOfRange(args, 1, args.length);
         String permission = subCommand.getPermission();
         if (permission != null && !permission.isBlank() && !sender.hasPermission(permission)) {
-            sender.sendMessage(ChatUtil.prefixed("&cYou don't have permission to use this command."));
+            sender.sendMessage(TextUtil.prefixed("&cYou don't have permission to use this command."));
             return true;
         }
 
         CommandResult result;
         if (subCommand instanceof PlayerSubCommand playerSubCommand) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage(ChatUtil.prefixed("&cYou must be a player to run this command."));
+                sender.sendMessage(TextUtil.prefixed("&cYou must be a player to run this command."));
                 return true;
             }
             result = playerSubCommand.execute((Player) sender, subCommandArgs);
@@ -101,22 +101,22 @@ public class MurderBaseCommand implements CommandExecutor {
         String names = visible.stream()
                 .map(SubCommand::getName)
                 .collect(Collectors.joining("|"));
-        sender.sendMessage(ChatUtil.prefixed("&cUsage: /murder <" + names + ">"));
+        sender.sendMessage(TextUtil.prefixed("&cUsage: /murder <" + names + ">"));
         for (SubCommand<?> subCommand : visible) {
             String description = subCommand.getDescription();
             if (description == null || description.isBlank()) {
-                sender.sendMessage(ChatUtil.prefixed("&7" + subCommand.getUsage()));
+                sender.sendMessage(TextUtil.prefixed("&7" + subCommand.getUsage()));
             } else {
-                sender.sendMessage(ChatUtil.prefixed("&7" + subCommand.getUsage() + " &8- &7" + description));
+                sender.sendMessage(TextUtil.prefixed("&7" + subCommand.getUsage() + " &8- &7" + description));
             }
         }
     }
 
     private void sendSubUsage(CommandSender sender, SubCommand<?> subCommand) {
-        sender.sendMessage(ChatUtil.prefixed("&cUsage: " + subCommand.getUsage()));
+        sender.sendMessage(TextUtil.prefixed("&cUsage: " + subCommand.getUsage()));
         String description = subCommand.getDescription();
         if (description != null && !description.isBlank()) {
-            sender.sendMessage(ChatUtil.prefixed("&7" + description));
+            sender.sendMessage(TextUtil.prefixed("&7" + description));
         }
     }
 }

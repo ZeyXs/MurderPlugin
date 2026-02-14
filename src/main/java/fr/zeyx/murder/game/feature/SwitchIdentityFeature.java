@@ -4,7 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import fr.zeyx.murder.game.QuickChatMenu;
 import fr.zeyx.murder.manager.CorpseManager;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -114,7 +114,7 @@ public class SwitchIdentityFeature {
         }
         refreshIdentityChestplate(murderer);
         gameManager.getScoreboardManager().showGameBoard(murderer, "&4Murderer", newIdentityDisplay);
-        murderer.sendMessage(ChatUtil.component("&aYou switched identities! You are now: " + newIdentityDisplay));
+        murderer.sendMessage(TextUtil.component("&aYou switched identities! You are now: " + newIdentityDisplay));
         boolean stillHasEnoughEmeralds = emeraldFeature == null
                 || emeraldFeature.getMissingEmeralds(murdererId, MURDERER_SWITCH_IDENTITY_COST) == 0;
         setMurdererSwitchIdentityItem(murderer, stillHasEnoughEmeralds);
@@ -160,7 +160,7 @@ public class SwitchIdentityFeature {
         murderer.getInventory().setItem(
                 MURDERER_SWITCH_IDENTITY_SLOT,
                 new ItemBuilder(expectedMaterial)
-                        .setName(ChatUtil.itemComponent(active ? MURDERER_SWITCH_IDENTITY_ENABLED_NAME : MURDERER_SWITCH_IDENTITY_DISABLED_NAME))
+                        .setName(TextUtil.itemComponent(active ? MURDERER_SWITCH_IDENTITY_ENABLED_NAME : MURDERER_SWITCH_IDENTITY_DISABLED_NAME))
                         .toItemStack()
         );
     }
@@ -219,6 +219,6 @@ public class SwitchIdentityFeature {
             return;
         }
         int required = Math.max(1, requiredCost);
-        player.sendMessage(ChatUtil.component("&cYou need " + required + " emeralds to do that!"));
+        player.sendMessage(TextUtil.component("&cYou need " + required + " emeralds to do that!"));
     }
 }

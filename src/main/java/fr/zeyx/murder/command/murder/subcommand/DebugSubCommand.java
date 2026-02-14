@@ -9,7 +9,7 @@ import fr.zeyx.murder.command.CommandArgs;
 import fr.zeyx.murder.command.CommandResult;
 import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -34,63 +34,63 @@ public class DebugSubCommand implements PlayerSubCommand {
             if (args.length >= 2 && args[1].equalsIgnoreCase("reset")) {
                 boolean reset = gameManager.getSecretIdentityManager().resetIdentity(player);
                 if (!reset) {
-                    player.sendMessage(ChatUtil.prefixed("&cYou don't have a secret identity to reset."));
+                    player.sendMessage(TextUtil.prefixed("&cYou don't have a secret identity to reset."));
                     return CommandResult.FAILURE;
                 }
-                player.sendMessage(ChatUtil.prefixed("&aYour identity has been reset."));
+                player.sendMessage(TextUtil.prefixed("&aYour identity has been reset."));
                 return CommandResult.SUCCESS;
             }
             if (gameManager.getConfigurationManager().getSecretIdentityNames().isEmpty()) {
-                player.sendMessage(ChatUtil.prefixed("&cNo secret identities configured."));
+                player.sendMessage(TextUtil.prefixed("&cNo secret identities configured."));
                 return CommandResult.FAILURE;
             }
             String username = gameManager.getSecretIdentityManager().applyRandomIdentity(player);
             if (username == null) {
-                player.sendMessage(ChatUtil.prefixed("&cNo alternative identity available."));
+                player.sendMessage(TextUtil.prefixed("&cNo alternative identity available."));
                 return CommandResult.FAILURE;
             }
-            player.sendMessage(ChatUtil.prefixed("&7Your identity is now &a" + username));
+            player.sendMessage(TextUtil.prefixed("&7Your identity is now &a" + username));
             return CommandResult.SUCCESS;
         }
 
         if (args[0].equalsIgnoreCase("identityreset") || args[0].equalsIgnoreCase("resetidentity")) {
             boolean reset = gameManager.getSecretIdentityManager().resetIdentity(player);
             if (!reset) {
-                player.sendMessage(ChatUtil.prefixed("&cYou don't have a secret identity to reset."));
+                player.sendMessage(TextUtil.prefixed("&cYou don't have a secret identity to reset."));
                 return CommandResult.FAILURE;
             }
-            player.sendMessage(ChatUtil.prefixed("&aYour identity has been reset."));
+            player.sendMessage(TextUtil.prefixed("&aYour identity has been reset."));
             return CommandResult.SUCCESS;
         }
 
         if (args[0].equalsIgnoreCase("corpse")) {
             if (args.length >= 2 && args[1].equalsIgnoreCase("clear")) {
                 int cleared = gameManager.getCorpseManager().clearCorpses();
-                player.sendMessage(ChatUtil.prefixed("&eDebug: cleared &6" + cleared + "&e corpses."));
+                player.sendMessage(TextUtil.prefixed("&eDebug: cleared &6" + cleared + "&e corpses."));
                 return CommandResult.SUCCESS;
             }
             gameManager.getCorpseManager().spawnCorpse(player);
-            player.sendMessage(ChatUtil.prefixed("&eDebug: corpse spawned."));
+            player.sendMessage(TextUtil.prefixed("&eDebug: corpse spawned."));
             return CommandResult.SUCCESS;
         }
 
         if (args[0].equalsIgnoreCase("corpseclear") || args[0].equalsIgnoreCase("clearcorpse")) {
             int cleared = gameManager.getCorpseManager().clearCorpses();
-            player.sendMessage(ChatUtil.prefixed("&eDebug: cleared &6" + cleared + "&e corpses."));
+            player.sendMessage(TextUtil.prefixed("&eDebug: cleared &6" + cleared + "&e corpses."));
             return CommandResult.SUCCESS;
         }
 
         if (args[0].equalsIgnoreCase("suicide")) {
             Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
             if (currentArena.isEmpty() || !(currentArena.get().getArenaState() instanceof ActiveArenaState activeArenaState)) {
-                player.sendMessage(ChatUtil.prefixed("&cYou must be in an active game to use this command."));
+                player.sendMessage(TextUtil.prefixed("&cYou must be in an active game to use this command."));
                 return CommandResult.FAILURE;
             }
             if (activeArenaState.getSession() == null || !activeArenaState.getSession().eliminatePlayer(player)) {
-                player.sendMessage(ChatUtil.prefixed("&cYou are already dead."));
+                player.sendMessage(TextUtil.prefixed("&cYou are already dead."));
                 return CommandResult.FAILURE;
             }
-            player.sendMessage(ChatUtil.prefixed("&eDebug: suicide triggered."));
+            player.sendMessage(TextUtil.prefixed("&eDebug: suicide triggered."));
             return CommandResult.SUCCESS;
         }
 
@@ -105,19 +105,19 @@ public class DebugSubCommand implements PlayerSubCommand {
 
         Arena arena = targetArena.get();
         if (arena.getArenaState() instanceof ActiveArenaState) {
-            player.sendMessage(ChatUtil.prefixed("&cThe game is already running."));
+            player.sendMessage(TextUtil.prefixed("&cThe game is already running."));
             return CommandResult.FAILURE;
         }
         if (arena.getArenaState() instanceof StartingArenaState) {
-            player.sendMessage(ChatUtil.prefixed("&cThe game is already starting."));
+            player.sendMessage(TextUtil.prefixed("&cThe game is already starting."));
             return CommandResult.FAILURE;
         }
         if (arena.getArenaState() instanceof InitArenaState) {
-            player.sendMessage(ChatUtil.prefixed("&cThis arena isn't ready yet."));
+            player.sendMessage(TextUtil.prefixed("&cThis arena isn't ready yet."));
             return CommandResult.FAILURE;
         }
         if (!(arena.getArenaState() instanceof WaitingArenaState)) {
-            player.sendMessage(ChatUtil.prefixed("&cThis arena can't be started right now."));
+            player.sendMessage(TextUtil.prefixed("&cThis arena can't be started right now."));
             return CommandResult.FAILURE;
         }
 
@@ -179,14 +179,14 @@ public class DebugSubCommand implements PlayerSubCommand {
             String arenaName = CommandArgs.joinArgs(args, 1);
             Optional<Arena> arena = gameManager.getArenaManager().findArena(arenaName);
             if (arena.isEmpty()) {
-                player.sendMessage(ChatUtil.prefixed("&cNo arena by that name exists."));
+                player.sendMessage(TextUtil.prefixed("&cNo arena by that name exists."));
             }
             return arena;
         }
 
         Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
         if (currentArena.isEmpty()) {
-            player.sendMessage(ChatUtil.prefixed("&cYou are not in an arena."));
+            player.sendMessage(TextUtil.prefixed("&cYou are not in an arena."));
         }
         return currentArena;
     }

@@ -6,7 +6,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 
-public class ChatUtil {
+public class TextUtil {
 
     public static final String CHAT_PREFIX = "&c&lMURDER &7\u2022&r ";
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();

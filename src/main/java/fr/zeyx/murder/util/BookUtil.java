@@ -39,19 +39,19 @@ public final class BookUtil {
 
         String title = section.getString("title");
         if (title != null && !title.isEmpty()) {
-            meta.title(ChatUtil.component(title));
+            meta.title(TextUtil.component(title));
         }
 
         String author = section.getString("author");
         if (author != null && !author.isEmpty()) {
-            meta.author(ChatUtil.component(author));
+            meta.author(TextUtil.component(author));
         }
 
         List<String> rawPages = section.getStringList("pages");
         if (!rawPages.isEmpty()) {
             List<Component> pages = new ArrayList<>();
             for (String rawPage : rawPages) {
-                pages.add(ChatUtil.component(rawPage == null ? "" : rawPage));
+                pages.add(TextUtil.component(rawPage == null ? "" : rawPage));
             }
             meta.pages(pages);
         }

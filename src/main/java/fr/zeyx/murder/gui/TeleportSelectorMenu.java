@@ -5,7 +5,7 @@ import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -50,13 +50,13 @@ public class TeleportSelectorMenu {
         }
         List<Player> targets = resolveOrderedTargets(alivePlayerIds);
         if (targets.isEmpty()) {
-            spectator.sendMessage(ChatUtil.prefixed("&cNo alive players to watch."));
+            spectator.sendMessage(TextUtil.prefixed("&cNo alive players to watch."));
             return;
         }
 
         int rows = Math.max(1, Math.min(6, (targets.size() + 8) / 9));
         Gui gui = Gui.gui()
-                .title(ChatUtil.component("&9Select a Player"))
+                .title(TextUtil.component("&9Select a Player"))
                 .rows(rows)
                 .create();
         gui.setDefaultClickAction(event -> event.setCancelled(true));
@@ -101,14 +101,14 @@ public class TeleportSelectorMenu {
             if (identityName == null || identityName.isBlank()) {
                 identityName = "&f" + target.getName();
             }
-            meta.displayName(ChatUtil.itemComponent(identityName));
+            meta.displayName(TextUtil.itemComponent(identityName));
 
             List<Component> lore = new ArrayList<>();
-            lore.add(ChatUtil.itemComponent(role == Role.MURDERER ? "&4Murderer" : "&9Bystander"));
-            lore.add(ChatUtil.itemComponent("&7Weapons: &a" + Math.max(0, weaponCountResolver.apply(targetId))));
-            lore.add(ChatUtil.itemComponent("&7Emeralds: &a0"));
+            lore.add(TextUtil.itemComponent(role == Role.MURDERER ? "&4Murderer" : "&9Bystander"));
+            lore.add(TextUtil.itemComponent("&7Weapons: &a" + Math.max(0, weaponCountResolver.apply(targetId))));
+            lore.add(TextUtil.itemComponent("&7Emeralds: &a0"));
             if (role == Role.MURDERER) {
-                lore.add(ChatUtil.itemComponent("&7Kills: &a" + Math.max(0, murdererKillCountResolver.getAsInt())));
+                lore.add(TextUtil.itemComponent("&7Kills: &a" + Math.max(0, murdererKillCountResolver.getAsInt())));
             }
             meta.lore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
@@ -119,7 +119,7 @@ public class TeleportSelectorMenu {
             event.setCancelled(true);
             if (target.isOnline()) {
                 spectator.teleport(target.getLocation());
-                spectator.sendMessage(ChatUtil.prefixed("&7Now watching " + chatNameResolver.apply(target) + "&7."));
+                spectator.sendMessage(TextUtil.prefixed("&7Now watching " + chatNameResolver.apply(target) + "&7."));
             }
             spectator.closeInventory();
         });

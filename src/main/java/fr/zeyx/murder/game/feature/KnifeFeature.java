@@ -5,7 +5,7 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.QuickChatMenu;
 import fr.zeyx.murder.game.Role;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -51,13 +51,15 @@ public class KnifeFeature {
     private static final float KNIFE_THROW_SOUND_VOLUME = 1.0F;
     private static final float KNIFE_THROW_SOUND_PITCH = 0.6F;
     private static final int MELEE_BLOOD_PARTICLE_COUNT = 10;
+
     private static final String MURDERER_BUY_KNIFE_DISABLED_NAME = "&7&lBuy Knife&r &7• Right Click";
     private static final String MURDERER_BUY_KNIFE_ENABLED_NAME = "&a&lBuy Knife&r &7• Right Click";
     private static final String MURDERER_BUY_KNIFE_DISABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_BUY_KNIFE_DISABLED_NAME);
     private static final String MURDERER_BUY_KNIFE_ENABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_BUY_KNIFE_ENABLED_NAME);
+
     private static final int MURDERER_BUY_KNIFE_COST = 5;
     private static final int MURDERER_BUY_KNIFE_SLOT = 3;
-    private static final Component MURDERER_KNIFE_NAME = ChatUtil.itemComponent("&7&oKnife", true);
+    private static final Component MURDERER_KNIFE_NAME = TextUtil.itemComponent("&7&oKnife", true);
     private static final Particle KNIFE_TRAIL_PARTICLE = resolveTrailParticle();
 
     private final Arena arena;
@@ -678,7 +680,7 @@ public class KnifeFeature {
             return;
         }
         int required = Math.max(1, requiredCost);
-        player.sendMessage(ChatUtil.component("&cYou need " + required + " emeralds to do that!"));
+        player.sendMessage(TextUtil.component("&cYou need " + required + " emeralds to do that!"));
     }
 
     private void setMurdererBuyKnifeItem(Player murderer, boolean active) {
@@ -704,7 +706,7 @@ public class KnifeFeature {
         murderer.getInventory().setItem(
                 MURDERER_BUY_KNIFE_SLOT,
                 new fr.zeyx.murder.util.ItemBuilder(expectedMaterial)
-                        .setName(ChatUtil.itemComponent(active ? MURDERER_BUY_KNIFE_ENABLED_NAME : MURDERER_BUY_KNIFE_DISABLED_NAME))
+                        .setName(TextUtil.itemComponent(active ? MURDERER_BUY_KNIFE_ENABLED_NAME : MURDERER_BUY_KNIFE_DISABLED_NAME))
                         .toItemStack()
         );
     }

@@ -4,7 +4,7 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.command.CommandResult;
 import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.entity.Player;
 
 import java.util.Optional;
@@ -25,7 +25,7 @@ public class LeaveSubCommand implements PlayerSubCommand {
 
         Optional<Arena> currentArena = gameManager.getArenaManager().getCurrentArena(player);
         if (currentArena.isEmpty()) {
-            player.sendMessage(ChatUtil.prefixed("&cYou are not in an arena."));
+            player.sendMessage(TextUtil.prefixed("&cYou are not in an arena."));
             return CommandResult.FAILURE;
         }
 

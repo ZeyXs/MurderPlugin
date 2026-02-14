@@ -5,7 +5,7 @@ import fr.zeyx.murder.game.QuickChatMenu;
 import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.game.service.NametagService;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import fr.zeyx.murder.util.ItemBuilder;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
@@ -73,11 +73,11 @@ public class LoadoutFeature {
         enforceHungerLock(player, role);
 
         if (role == Role.MURDERER) {
-            ItemStack knife = new ItemBuilder(Material.WOODEN_SWORD).setName(ChatUtil.itemComponent(MURDERER_KNIFE_NAME, true)).toItemStack();
+            ItemStack knife = new ItemBuilder(Material.WOODEN_SWORD).setName(TextUtil.itemComponent(MURDERER_KNIFE_NAME, true)).toItemStack();
             applyInstantAttackSpeed(knife);
             player.getInventory().setItem(0, knife);
-            player.getInventory().setItem(3, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_BUY_KNIFE_NAME)).toItemStack());
-            player.getInventory().setItem(4, new ItemBuilder(Material.GRAY_DYE).setName(ChatUtil.itemComponent(MURDERER_SWITCH_IDENTITY_NAME)).toItemStack());
+            player.getInventory().setItem(3, new ItemBuilder(Material.GRAY_DYE).setName(TextUtil.itemComponent(MURDERER_BUY_KNIFE_NAME)).toItemStack());
+            player.getInventory().setItem(4, new ItemBuilder(Material.GRAY_DYE).setName(TextUtil.itemComponent(MURDERER_SWITCH_IDENTITY_NAME)).toItemStack());
         } else if (role == Role.DETECTIVE) {
             ItemStack gun = gameManager.getGunManager().createGunItem();
             player.getInventory().setItem(0, gun);
@@ -102,7 +102,7 @@ public class LoadoutFeature {
         NametagService.hide(player);
         gameManager.getScoreboardManager().showGameBoard(player, roleLine, identityName);
         player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 5, 0, false, false, false));
-        player.sendMessage(ChatUtil.component("&7Your secret identity is: " + identityName));
+        player.sendMessage(TextUtil.component("&7Your secret identity is: " + identityName));
         showRoleTitle(player, role);
     }
 
@@ -115,7 +115,7 @@ public class LoadoutFeature {
         if (chestplate.getItemMeta() instanceof LeatherArmorMeta chestplateMeta) {
             chestplateMeta.setColor(identityColor);
             chestplateMeta.setUnbreakable(true);
-            chestplateMeta.itemName(ChatUtil.itemComponent("&aLeather Chestplate"));
+            chestplateMeta.itemName(TextUtil.itemComponent("&aLeather Chestplate"));
             chestplateMeta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ATTRIBUTES);
             chestplate.setItemMeta(chestplateMeta);
         }
@@ -125,18 +125,18 @@ public class LoadoutFeature {
     private void showRoleTitle(Player player, Role role) {
         Title title = switch (role) {
             case MURDERER -> Title.title(
-                    ChatUtil.component("&c&lMurderer      "),
-                    ChatUtil.component("      &4Don't get caught"),
+                    TextUtil.component("&c&lMurderer      "),
+                    TextUtil.component("      &4Don't get caught"),
                     Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
             );
             case DETECTIVE -> Title.title(
-                    ChatUtil.component("&3&lBystander      "),
-                    ChatUtil.component("       &dWith a secret weapon"),
+                    TextUtil.component("&3&lBystander      "),
+                    TextUtil.component("       &dWith a secret weapon"),
                     Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
             );
             case BYSTANDER -> Title.title(
-                    ChatUtil.component("&3&lBystander       "),
-                    ChatUtil.component("      &3Kill the murderer"),
+                    TextUtil.component("&3&lBystander       "),
+                    TextUtil.component("      &3Kill the murderer"),
                     Title.Times.times(Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500))
             );
         };

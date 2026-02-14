@@ -5,7 +5,7 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.state.ActiveArenaState;
 import fr.zeyx.murder.manager.ArenaManager;
 import fr.zeyx.murder.manager.SecretIdentityManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.Component;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
@@ -181,7 +181,7 @@ public class TabListService implements Listener {
         if (viewer.getUniqueId().equals(target.getUniqueId())) {
             display = display + " &f(YOU)";
         }
-        return ChatUtil.component(display);
+        return TextUtil.component(display);
     }
 
     private void restoreManagedViewers() {

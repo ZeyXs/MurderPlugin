@@ -4,7 +4,7 @@ import fr.zeyx.murder.command.PlayerSubCommand;
 import fr.zeyx.murder.command.CommandResult;
 import fr.zeyx.murder.command.CommandArgs;
 import fr.zeyx.murder.manager.GameManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -27,7 +27,7 @@ public class LobbySubCommand implements PlayerSubCommand {
 
         Location location = player.getLocation();
         gameManager.getConfigurationManager().setLobbyLocation(location);
-        player.sendMessage(ChatUtil.prefixed("&aLobby location set to &d" + ChatUtil.displayLocation(location)));
+        player.sendMessage(TextUtil.prefixed("&aLobby location set to &d" + TextUtil.displayLocation(location)));
         return CommandResult.SUCCESS;
     }
 

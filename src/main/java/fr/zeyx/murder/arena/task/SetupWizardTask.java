@@ -1,7 +1,7 @@
 package fr.zeyx.murder.arena.task;
 
 import fr.zeyx.murder.arena.setup.SetupWizardManager;
-import fr.zeyx.murder.util.ChatUtil;
+import fr.zeyx.murder.util.TextUtil;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -30,7 +30,7 @@ public class SetupWizardTask extends BukkitRunnable {
         for (UUID playerId : uuids) {
             Player player = Bukkit.getPlayer(playerId);
             if (player == null) return;
-            player.sendActionBar(ChatUtil.component(ChatColor.of("#fc9003") + "⚠ ᴀʀᴇɴᴀ sᴇᴛᴜᴘ ᴍᴏᴅᴇ ⚠"));
+            player.sendActionBar(TextUtil.component(ChatColor.of("#fc9003") + "⚠ ᴀʀᴇɴᴀ sᴇᴛᴜᴘ ᴍᴏᴅᴇ ⚠"));
         }
     }
 
