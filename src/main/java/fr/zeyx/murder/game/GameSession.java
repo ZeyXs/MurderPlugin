@@ -11,6 +11,7 @@ import fr.zeyx.murder.game.feature.QuickChatFeature;
 import fr.zeyx.murder.game.feature.SpectatorFeature;
 import fr.zeyx.murder.game.service.AliveDisplayService;
 import fr.zeyx.murder.game.service.IdentityService;
+import fr.zeyx.murder.game.service.MurdererVignetteService;
 import fr.zeyx.murder.game.service.NametagService;
 import fr.zeyx.murder.manager.GameManager;
 import com.destroystokyo.paper.profile.PlayerProfile;
@@ -46,6 +47,7 @@ public class GameSession {
     private final LoadoutFeature loadoutFeature;
     private final SpectatorFeature spectatorFeature;
     private final AliveDisplayService aliveDisplayService;
+    private final MurdererVignetteService murdererVignetteService;
     private final SwitchIdentityFeature switchIdentityFeature;
     private final EndGameMessenger endGameMessenger;
     private final EndGameFeature endGameFeature;
@@ -68,6 +70,7 @@ public class GameSession {
         this.identityService = new IdentityService(gameManager);
         this.loadoutFeature = new LoadoutFeature(gameManager);
         this.aliveDisplayService = new AliveDisplayService(arena, identityService);
+        this.murdererVignetteService = new MurdererVignetteService();
         this.switchIdentityFeature = new SwitchIdentityFeature(gameManager);
         this.spectatorFeature = new SpectatorFeature(
                 gameManager,
@@ -94,6 +97,7 @@ public class GameSession {
     public void start() {
         alivePlayers.clear();
         alivePlayers.addAll(arena.getActivePlayers());
+        murdererVignetteService.clearAll();
         roundTimeLeftSeconds = ROUND_DURATION_SECONDS;
         murdererUnsuccessful = false;
         roundParticipants.clear();
@@ -128,6 +132,7 @@ public class GameSession {
         }
 
         aliveDisplayService.updateAliveCountDisplays(alivePlayers, murdererId);
+        murdererVignetteService.apply(murdererId);
         aliveDisplayService.updateChatCompletionsForActivePlayers();
         spectatorFeature.refreshPlayerVisibility();
         registerCurrentMurdererIdentity();
@@ -136,6 +141,7 @@ public class GameSession {
     }
 
     public void endGame() {
+        murdererVignetteService.clearAll();
         endGameMessenger.sendRoleRevealMessages();
         endGameMessenger.sendWinnerMessage(murdererId, murdererKillerId, murdererUnsuccessful);
         spectatorFeature.restoreVisibilityForArenaPlayers();
@@ -169,6 +175,7 @@ public class GameSession {
 
     public void tick() {
         switchIdentityFeature.updateSwitchIdentityItem(murdererId, alivePlayers, roundParticipants);
+        murdererVignetteService.tick(murdererId);
     }
 
     public void removeAlive(UUID playerId) {
@@ -180,6 +187,9 @@ public class GameSession {
         cacheIdentityDisplayName(playerId);
         if (playerId != null && playerId.equals(murdererId) && killerId != null && !killerId.equals(playerId)) {
             murdererKillerId = killerId;
+        }
+        if (playerId != null && playerId.equals(murdererId)) {
+            murdererVignetteService.clear(playerId);
         }
         spectatorFeature.onAliveListChanged(playerId);
         aliveDisplayService.updateChatCompletionsForActivePlayers();
