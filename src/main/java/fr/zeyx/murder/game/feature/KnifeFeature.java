@@ -7,24 +7,26 @@ import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.util.ChatUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.ItemDespawnEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -35,6 +37,8 @@ public class KnifeFeature {
     private static final double KNIFE_THROW_SPEED = 4D;
     private static final int KNIFE_THROW_MAX_LIFETIME_TICKS = 20 * 3;
     private static final long KNIFE_RETURN_DELAY_TICKS = 20L * 20L;
+    private static final double BLOCK_COLLISION_FACE_OFFSET = 0.62D;
+    private static final double SAFE_DROP_ELEVATION_OFFSET = 0.05D;
     private static final float KNIFE_THROW_SOUND_VOLUME = 1.0F;
     private static final float KNIFE_THROW_SOUND_PITCH = 0.6F;
     private static final int MELEE_BLOOD_PARTICLE_COUNT = 10;
@@ -43,11 +47,23 @@ public class KnifeFeature {
 
     private final Arena arena;
     private final Map<UUID, BukkitTask> thrownKnifeTasks = new ConcurrentHashMap<>();
-    private final Map<UUID, UUID> thrownKnifeOwners = new ConcurrentHashMap<>();
-    private final Map<UUID, ItemStack> thrownKnifeItems = new ConcurrentHashMap<>();
+    private final Map<UUID, ThrownKnifeData> thrownKnifeProjectiles = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> droppedKnifeOwners = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> droppedKnifeReturnTasks = new ConcurrentHashMap<>();
+    private final Set<UUID> lockedKnifeItems = ConcurrentHashMap.newKeySet();
     private final Set<UUID> handledThrownKnifeProjectiles = ConcurrentHashMap.newKeySet();
+
+    private static final class ThrownKnifeData {
+        private final UUID ownerId;
+        private final UUID knifeItemId;
+        private final ItemStack knifeItem;
+
+        private ThrownKnifeData(UUID ownerId, UUID knifeItemId, ItemStack knifeItem) {
+            this.ownerId = ownerId;
+            this.knifeItemId = knifeItemId;
+            this.knifeItem = knifeItem;
+        }
+    }
 
     public KnifeFeature(Arena arena) {
         this.arena = arena;
@@ -65,13 +81,19 @@ public class KnifeFeature {
 
         ItemStack thrownKnifeItem = usedItem.clone();
         thrownKnifeItem.setAmount(1);
-        Item thrownKnife = shooter.getWorld().dropItem(shooter.getEyeLocation(), thrownKnifeItem.clone());
-        thrownKnife.setVelocity(shooter.getEyeLocation().getDirection().normalize().multiply(KNIFE_THROW_SPEED));
-        thrownKnife.setPickupDelay(Integer.MAX_VALUE);
+        Item droppedKnife = spawnKnifeItemAtThrower(shooter, thrownKnifeItem);
+        if (droppedKnife == null) {
+            return true;
+        }
 
-        thrownKnifeOwners.put(thrownKnife.getUniqueId(), shooter.getUniqueId());
-        thrownKnifeItems.put(thrownKnife.getUniqueId(), thrownKnifeItem.clone());
-        startThrownKnifeTask(thrownKnife, session);
+        Arrow projectile = shooter.launchProjectile(Arrow.class);
+        Vector throwVelocity = shooter.getEyeLocation().getDirection().normalize().multiply(KNIFE_THROW_SPEED);
+        projectile.setVelocity(throwVelocity);
+        projectile.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
+
+        UUID projectileId = projectile.getUniqueId();
+        thrownKnifeProjectiles.put(projectileId, new ThrownKnifeData(shooter.getUniqueId(), droppedKnife.getUniqueId(), thrownKnifeItem.clone()));
+        startThrownKnifeTask(projectile);
 
         consumeHeldItem(shooter);
         playKnifeThrowSoundToArena();
@@ -92,6 +114,31 @@ public class KnifeFeature {
         }
     }
 
+    public void onProjectileHit(ProjectileHitEvent event, GameSession session) {
+        if (!(event.getEntity() instanceof Arrow arrow)) {
+            return;
+        }
+        UUID projectileId = arrow.getUniqueId();
+        ThrownKnifeData knifeData = thrownKnifeProjectiles.get(projectileId);
+        if (knifeData == null || !handledThrownKnifeProjectiles.add(projectileId)) {
+            return;
+        }
+
+        stopThrownKnifeTask(projectileId);
+        thrownKnifeProjectiles.remove(projectileId);
+        unlockKnifeItemPickup(knifeData.knifeItemId);
+
+        Location collisionLocation = resolveCollisionLocation(arrow, event);
+        teleportKnifeItem(knifeData.knifeItemId, collisionLocation);
+
+        if (event.getHitEntity() instanceof Player victim) {
+            handleKnifeProjectileVictimHit(knifeData.ownerId, victim, session);
+        }
+
+        arrow.remove();
+        handledThrownKnifeProjectiles.remove(projectileId);
+    }
+
     public void onKnifePickup(EntityPickupItemEvent event, GameSession session) {
         if (!(event.getEntity() instanceof Player player)) {
             return;
@@ -101,17 +148,23 @@ public class KnifeFeature {
         if (ownerId == null) {
             return;
         }
+        if (lockedKnifeItems.contains(knifeItemId)) {
+            event.setCancelled(true);
+            return;
+        }
         if (!player.getUniqueId().equals(ownerId) || !isAliveMurderer(player, session)) {
             event.setCancelled(true);
             return;
         }
         droppedKnifeOwners.remove(knifeItemId);
+        lockedKnifeItems.remove(knifeItemId);
         cancelKnifeReturnTask(knifeItemId);
     }
 
     public void onKnifeDespawn(ItemDespawnEvent event) {
         UUID knifeItemId = event.getEntity().getUniqueId();
         droppedKnifeOwners.remove(knifeItemId);
+        lockedKnifeItems.remove(knifeItemId);
         cancelKnifeReturnTask(knifeItemId);
     }
 
@@ -126,11 +179,13 @@ public class KnifeFeature {
         }
         thrownKnifeTasks.clear();
         clearAllKnifeItems();
+        thrownKnifeProjectiles.clear();
         for (BukkitTask task : droppedKnifeReturnTasks.values()) {
             task.cancel();
         }
         droppedKnifeReturnTasks.clear();
         droppedKnifeOwners.clear();
+        lockedKnifeItems.clear();
         handledThrownKnifeProjectiles.clear();
     }
 
@@ -151,121 +206,222 @@ public class KnifeFeature {
         return count;
     }
 
-    private void startThrownKnifeTask(Item thrownKnife, GameSession session) {
-        UUID knifeEntityId = thrownKnife.getUniqueId();
-        stopThrownKnifeTask(knifeEntityId);
+    private Item spawnKnifeItemAtThrower(Player shooter, ItemStack knifeItem) {
+        if (shooter == null || shooter.getWorld() == null || knifeItem == null || knifeItem.getType() == Material.AIR) {
+            return null;
+        }
+        Location dropLocation = shooter.getLocation().clone().add(0.0D, 1.0D, 0.0D);
+        Item droppedKnife = shooter.getWorld().dropItem(dropLocation, knifeItem.clone());
+        droppedKnife.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
+        UUID itemId = droppedKnife.getUniqueId();
+        droppedKnifeOwners.put(itemId, shooter.getUniqueId());
+        lockedKnifeItems.add(itemId);
+        scheduleKnifeReturn(itemId);
+        return droppedKnife;
+    }
+
+    private void startThrownKnifeTask(Arrow projectile) {
+        UUID projectileId = projectile.getUniqueId();
+        stopThrownKnifeTask(projectileId);
 
         BukkitTask knifeTask = new BukkitRunnable() {
             private int livedTicks = 0;
-            private Location previousLocation = thrownKnife.getLocation();
 
             @Override
             public void run() {
-                if (!thrownKnife.isValid() || thrownKnife.isDead()) {
-                    cleanupThrownKnifeProjectile(knifeEntityId);
+                if (!projectile.isValid() || projectile.isDead()) {
+                    handleKnifeProjectileTimeout(projectileId);
                     return;
                 }
                 livedTicks++;
                 if (livedTicks >= KNIFE_THROW_MAX_LIFETIME_TICKS) {
-                    handleThrownKnifeCollision(thrownKnife, thrownKnife.getLocation(), null, session);
+                    handleKnifeProjectileTimeout(projectileId);
+                    projectile.remove();
                     return;
                 }
-                spawnProjectileTrail(thrownKnife.getLocation());
-
-                Location currentLocation = thrownKnife.getLocation();
-                Vector movement = currentLocation.toVector().subtract(previousLocation.toVector());
-                double distance = movement.length();
-                if (distance <= 0.0D) {
-                    if (thrownKnife.isOnGround()) {
-                        handleThrownKnifeCollision(thrownKnife, currentLocation, null, session);
-                        return;
-                    }
-                    previousLocation = currentLocation;
-                    return;
+                spawnProjectileTrail(projectile.getLocation());
+                if (projectile.isOnGround()) {
+                    Location collisionLocation = projectile.getLocation();
+                    handleKnifeProjectileGroundCollision(projectile, collisionLocation);
                 }
-
-                Vector direction = movement.clone().normalize();
-                RayTraceResult blockHit = thrownKnife.getWorld().rayTraceBlocks(
-                        previousLocation,
-                        direction,
-                        distance,
-                        FluidCollisionMode.NEVER,
-                        false
-                );
-                if (blockHit != null) {
-                    Location hitLocation = blockHit.getHitPosition().toLocation(thrownKnife.getWorld());
-                    handleThrownKnifeCollision(thrownKnife, hitLocation, null, session);
-                    return;
-                }
-
-                UUID ownerId = readThrownKnifeOwner(knifeEntityId);
-                RayTraceResult entityHit = thrownKnife.getWorld().rayTraceEntities(
-                        previousLocation,
-                        direction,
-                        distance,
-                        0.2D,
-                        entity -> entity instanceof Player hitPlayer
-                                && arena.isPlaying(hitPlayer)
-                                && (ownerId == null || !ownerId.equals(hitPlayer.getUniqueId()))
-                );
-                if (entityHit != null && entityHit.getHitEntity() instanceof Player hitPlayer) {
-                    handleThrownKnifeCollision(thrownKnife, hitPlayer.getLocation(), hitPlayer, session);
-                    return;
-                }
-
-                if (thrownKnife.isOnGround()) {
-                    handleThrownKnifeCollision(thrownKnife, currentLocation, null, session);
-                    return;
-                }
-
-                previousLocation = currentLocation;
             }
         }.runTaskTimer(MurderPlugin.getInstance(), 0L, 1L);
 
-        thrownKnifeTasks.put(knifeEntityId, knifeTask);
+        thrownKnifeTasks.put(projectileId, knifeTask);
     }
 
-    private void stopThrownKnifeTask(UUID knifeEntityId) {
-        BukkitTask task = thrownKnifeTasks.remove(knifeEntityId);
+    private void stopThrownKnifeTask(UUID projectileId) {
+        BukkitTask task = thrownKnifeTasks.remove(projectileId);
         if (task != null) {
             task.cancel();
         }
     }
 
-    private void handleThrownKnifeCollision(Item thrownKnife, Location collisionLocation, Player hitVictim, GameSession session) {
-        UUID knifeEntityId = thrownKnife.getUniqueId();
-        if (!handledThrownKnifeProjectiles.add(knifeEntityId)) {
+    private void handleKnifeProjectileGroundCollision(Arrow projectile, Location collisionLocation) {
+        UUID projectileId = projectile.getUniqueId();
+        ThrownKnifeData knifeData = thrownKnifeProjectiles.get(projectileId);
+        if (knifeData == null || !handledThrownKnifeProjectiles.add(projectileId)) {
             return;
         }
+        stopThrownKnifeTask(projectileId);
+        thrownKnifeProjectiles.remove(projectileId);
+        unlockKnifeItemPickup(knifeData.knifeItemId);
+        teleportKnifeItem(knifeData.knifeItemId, collisionLocation);
+        projectile.remove();
+        handledThrownKnifeProjectiles.remove(projectileId);
+    }
 
-        stopThrownKnifeTask(knifeEntityId);
-        UUID ownerId = thrownKnifeOwners.remove(knifeEntityId);
-        ItemStack knifeItem = thrownKnifeItems.remove(knifeEntityId);
-        if (knifeItem == null || knifeItem.getType() == Material.AIR) {
-            knifeItem = thrownKnife.getItemStack().clone();
+    private void handleKnifeProjectileTimeout(UUID projectileId) {
+        ThrownKnifeData knifeData = thrownKnifeProjectiles.get(projectileId);
+        if (knifeData == null || !handledThrownKnifeProjectiles.add(projectileId)) {
+            return;
+        }
+        stopThrownKnifeTask(projectileId);
+        thrownKnifeProjectiles.remove(projectileId);
+        returnKnifeToOwner(knifeData);
+        handledThrownKnifeProjectiles.remove(projectileId);
+    }
+
+    private void handleKnifeProjectileVictimHit(UUID ownerId, Player victim, GameSession session) {
+        if (ownerId == null || victim == null || session == null) {
+            return;
+        }
+        Player owner = Bukkit.getPlayer(ownerId);
+        if (owner == null || owner.getUniqueId().equals(victim.getUniqueId())) {
+            return;
+        }
+        if (!isAliveMurderer(owner, session) || !arena.isPlaying(victim)) {
+            return;
+        }
+        Location victimLocation = victim.getLocation();
+        if (session.eliminatePlayer(victim, owner)) {
+            spawnBlood(victimLocation);
+        }
+    }
+
+    private void returnKnifeToOwner(ThrownKnifeData knifeData) {
+        if (knifeData == null) {
+            return;
+        }
+        UUID knifeItemId = knifeData.knifeItemId;
+        Item knifeEntity = findKnifeItem(knifeItemId);
+        ItemStack knifeStack = null;
+        if (knifeEntity != null && knifeEntity.isValid()) {
+            knifeStack = knifeEntity.getItemStack().clone();
+        } else if (knifeData.knifeItem != null) {
+            knifeStack = knifeData.knifeItem.clone();
         }
 
-        if (hitVictim != null && ownerId != null && session != null) {
-            Player owner = Bukkit.getPlayer(ownerId);
-            if (owner != null && isAliveMurderer(owner, session) && arena.isPlaying(hitVictim)) {
-                Location victimLocation = hitVictim.getLocation();
-                if (session.eliminatePlayer(hitVictim, owner)) {
-                    spawnBlood(victimLocation);
-                }
+        Player owner = Bukkit.getPlayer(knifeData.ownerId);
+        if (owner != null && owner.isOnline() && knifeStack != null && knifeStack.getType() != Material.AIR) {
+            Map<Integer, ItemStack> leftovers = owner.getInventory().addItem(knifeStack);
+            for (ItemStack leftover : leftovers.values()) {
+                owner.getWorld().dropItemNaturally(owner.getLocation(), leftover);
             }
         }
 
-        if (knifeItem.getType() != Material.AIR) {
-            dropKnifeItem(collisionLocation == null ? thrownKnife.getLocation() : collisionLocation, ownerId, knifeItem);
+        if (knifeEntity != null && knifeEntity.isValid()) {
+            knifeEntity.remove();
         }
 
-        thrownKnife.remove();
+        droppedKnifeOwners.remove(knifeItemId);
+        unlockKnifeItemPickup(knifeItemId);
+        cancelKnifeReturnTask(knifeItemId);
     }
 
-    private void cleanupThrownKnifeProjectile(UUID knifeEntityId) {
-        stopThrownKnifeTask(knifeEntityId);
-        thrownKnifeOwners.remove(knifeEntityId);
-        thrownKnifeItems.remove(knifeEntityId);
+    private Location resolveCollisionLocation(Arrow projectile, ProjectileHitEvent event) {
+        if (projectile == null || projectile.getWorld() == null) {
+            return null;
+        }
+        Block hitBlock = event == null ? null : event.getHitBlock();
+        if (hitBlock != null) {
+            return resolveSafeBlockCollisionLocation(projectile, event, hitBlock);
+        }
+        if (event != null && event.getHitEntity() != null) {
+            return resolveSafeDropLocation(projectile.getLocation().clone().add(0.0D, SAFE_DROP_ELEVATION_OFFSET, 0.0D));
+        }
+        return resolveSafeDropLocation(projectile.getLocation().clone());
+    }
+
+    private Location resolveSafeBlockCollisionLocation(Arrow projectile, ProjectileHitEvent event, Block hitBlock) {
+        Location blockCenter = hitBlock.getLocation().add(0.5D, 0.5D, 0.5D);
+        BlockFace hitFace = event == null ? null : event.getHitBlockFace();
+        if (hitFace != null) {
+            Location outsideFaceLocation = blockCenter.clone().add(
+                    hitFace.getModX() * BLOCK_COLLISION_FACE_OFFSET,
+                    hitFace.getModY() * BLOCK_COLLISION_FACE_OFFSET,
+                    hitFace.getModZ() * BLOCK_COLLISION_FACE_OFFSET
+            );
+            return resolveSafeDropLocation(outsideFaceLocation);
+        }
+
+        Vector projectileVelocity = projectile.getVelocity().clone();
+        if (projectileVelocity.lengthSquared() > 0.0D) {
+            projectileVelocity.normalize().multiply(0.45D);
+            return resolveSafeDropLocation(projectile.getLocation().clone().subtract(projectileVelocity));
+        }
+        return resolveSafeDropLocation(projectile.getLocation().clone());
+    }
+
+    private Location resolveSafeDropLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return location;
+        }
+        Location centeredBase = centerToBlock(location);
+        if (isDropSpace(centeredBase)) {
+            return centeredBase.add(0.0D, SAFE_DROP_ELEVATION_OFFSET, 0.0D);
+        }
+
+        int[] offsets = {-1, 0, 1};
+        for (int y = 0; y <= 2; y++) {
+            for (int x : offsets) {
+                for (int z : offsets) {
+                    Location candidate = centeredBase.clone().add(x, y, z);
+                    if (isDropSpace(candidate)) {
+                        return candidate.add(0.0D, SAFE_DROP_ELEVATION_OFFSET, 0.0D);
+                    }
+                }
+            }
+        }
+        return centeredBase.add(0.0D, 1.0D + SAFE_DROP_ELEVATION_OFFSET, 0.0D);
+    }
+
+    private Location centerToBlock(Location location) {
+        return new Location(
+                location.getWorld(),
+                location.getBlockX() + 0.5D,
+                location.getBlockY(),
+                location.getBlockZ() + 0.5D,
+                location.getYaw(),
+                location.getPitch()
+        );
+    }
+
+    private boolean isDropSpace(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return false;
+        }
+        Block block = location.getBlock();
+        Block above = block.getRelative(BlockFace.UP);
+        return block.isPassable() && above.isPassable();
+    }
+
+    private void teleportKnifeItem(UUID knifeItemId, Location collisionLocation) {
+        Item knifeItem = findKnifeItem(knifeItemId);
+        if (knifeItem == null || !knifeItem.isValid()) {
+            return;
+        }
+        if (collisionLocation != null && collisionLocation.getWorld() != null) {
+            knifeItem.teleport(collisionLocation);
+            knifeItem.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
+        }
+    }
+
+    private void unlockKnifeItemPickup(UUID knifeItemId) {
+        if (knifeItemId == null) {
+            return;
+        }
+        lockedKnifeItems.remove(knifeItemId);
     }
 
     private boolean isAliveMurderer(Player player, GameSession session) {
@@ -288,10 +444,6 @@ public class KnifeFeature {
         }
         Component itemName = item.getItemMeta().displayName();
         return itemName != null && itemName.equals(MURDERER_KNIFE_NAME);
-    }
-
-    private UUID readThrownKnifeOwner(UUID projectileId) {
-        return projectileId == null ? null : thrownKnifeOwners.get(projectileId);
     }
 
     private void consumeHeldItem(Player shooter) {
@@ -318,16 +470,6 @@ public class KnifeFeature {
         }
     }
 
-    private void dropKnifeItem(Location location, UUID ownerId, ItemStack knifeItem) {
-        if (location == null || location.getWorld() == null || knifeItem == null || knifeItem.getType() == Material.AIR || ownerId == null) {
-            return;
-        }
-        Item droppedKnife = location.getWorld().dropItemNaturally(location, knifeItem.clone());
-        UUID knifeItemId = droppedKnife.getUniqueId();
-        droppedKnifeOwners.put(knifeItemId, ownerId);
-        scheduleKnifeReturn(knifeItemId);
-    }
-
     private void clearKnifeDropsFromFloor() {
         for (UUID knifeItemId : Set.copyOf(droppedKnifeOwners.keySet())) {
             Item knifeItem = findKnifeItem(knifeItemId);
@@ -336,6 +478,7 @@ public class KnifeFeature {
             }
             cancelKnifeReturnTask(knifeItemId);
             droppedKnifeOwners.remove(knifeItemId);
+            lockedKnifeItems.remove(knifeItemId);
         }
     }
 
@@ -351,6 +494,7 @@ public class KnifeFeature {
                 Item knifeItem = findKnifeItem(knifeItemId);
                 if (ownerId == null || knifeItem == null || !knifeItem.isValid()) {
                     droppedKnifeOwners.remove(knifeItemId);
+                    lockedKnifeItems.remove(knifeItemId);
                     cancelKnifeReturnTask(knifeItemId);
                     return;
                 }
@@ -366,6 +510,7 @@ public class KnifeFeature {
 
                 knifeItem.remove();
                 droppedKnifeOwners.remove(knifeItemId);
+                lockedKnifeItems.remove(knifeItemId);
                 cancelKnifeReturnTask(knifeItemId);
             }
         }.runTaskLater(MurderPlugin.getInstance(), KNIFE_RETURN_DELAY_TICKS);
@@ -413,16 +558,14 @@ public class KnifeFeature {
     }
 
     private void clearActiveThrownKnifeEntities() {
-        Set<UUID> activeThrownIds = new HashSet<>(thrownKnifeOwners.keySet());
-        activeThrownIds.addAll(thrownKnifeItems.keySet());
-        for (UUID knifeEntityId : activeThrownIds) {
-            stopThrownKnifeTask(knifeEntityId);
-            Item thrownKnife = findKnifeItem(knifeEntityId);
-            if (thrownKnife != null) {
-                thrownKnife.remove();
+        for (UUID projectileId : Set.copyOf(thrownKnifeProjectiles.keySet())) {
+            stopThrownKnifeTask(projectileId);
+            org.bukkit.entity.Entity projectile = Bukkit.getEntity(projectileId);
+            if (projectile instanceof Arrow arrow) {
+                arrow.remove();
             }
-            thrownKnifeOwners.remove(knifeEntityId);
-            thrownKnifeItems.remove(knifeEntityId);
+            thrownKnifeProjectiles.remove(projectileId);
+            handledThrownKnifeProjectiles.remove(projectileId);
         }
     }
 

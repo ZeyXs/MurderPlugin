@@ -132,6 +132,7 @@ public class ActiveArenaState extends PlayingArenaState {
 
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent event) {
+        knifeFeature.onProjectileHit(event, session);
         gunFeature.onProjectileHit(event, session);
     }
 
