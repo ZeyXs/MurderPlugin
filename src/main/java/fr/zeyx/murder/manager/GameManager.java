@@ -4,7 +4,7 @@ import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.setup.SetupWizardManager;
 import fr.zeyx.murder.game.GameSession;
-import fr.zeyx.murder.game.service.ArenaTabListService;
+import fr.zeyx.murder.game.service.TabListService;
 import fr.zeyx.murder.game.service.NametagService;
 import fr.zeyx.murder.game.service.PlayerCollisionService;
 import org.bukkit.Bukkit;
@@ -21,7 +21,7 @@ public class GameManager {
     private final SetupWizardManager setupWizardManager;
     private final ScoreboardManager scoreboardManager;
     private final SecretIdentityManager secretIdentityManager;
-    private final ArenaTabListService arenaTabListService;
+    private final TabListService tabListService;
     private final CorpseManager corpseManager;
     private final GunManager gunManager;
 
@@ -31,11 +31,11 @@ public class GameManager {
         this.setupWizardManager = new SetupWizardManager(this);
         this.scoreboardManager = new ScoreboardManager();
         this.secretIdentityManager = new SecretIdentityManager(configurationManager, arenaManager);
-        this.arenaTabListService = new ArenaTabListService(arenaManager, secretIdentityManager);
+        this.tabListService = new TabListService(arenaManager, secretIdentityManager);
         this.corpseManager = new CorpseManager(MurderPlugin.getInstance());
         this.gunManager = new GunManager();
         registerListeners();
-        arenaTabListService.start();
+        tabListService.start();
     }
 
     public ArenaManager getArenaManager() {
@@ -58,8 +58,8 @@ public class GameManager {
         return secretIdentityManager;
     }
 
-    public ArenaTabListService getArenaTabListService() {
-        return arenaTabListService;
+    public TabListService getTabListService() {
+        return tabListService;
     }
 
     public CorpseManager getCorpseManager() {
@@ -71,7 +71,7 @@ public class GameManager {
     }
 
     public void shutdown() {
-        arenaTabListService.shutdown();
+        tabListService.shutdown();
         setupWizardManager.shutdown();
         resetAllArenasForShutdown();
         arenaManager.resetVoteSession();
@@ -110,7 +110,7 @@ public class GameManager {
         pluginManager.registerEvents(setupWizardManager, MurderPlugin.getInstance());
         pluginManager.registerEvents(scoreboardManager, MurderPlugin.getInstance());
         pluginManager.registerEvents(secretIdentityManager, MurderPlugin.getInstance());
-        pluginManager.registerEvents(arenaTabListService, MurderPlugin.getInstance());
+        pluginManager.registerEvents(tabListService, MurderPlugin.getInstance());
     }
 
 }

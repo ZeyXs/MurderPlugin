@@ -3,14 +3,20 @@ package fr.zeyx.murder.game.feature;
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.GameSession;
+import fr.zeyx.murder.game.QuickChatMenu;
 import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.util.ChatUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.AbstractArrow;
@@ -22,7 +28,10 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.ItemDespawnEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
@@ -42,6 +51,12 @@ public class KnifeFeature {
     private static final float KNIFE_THROW_SOUND_VOLUME = 1.0F;
     private static final float KNIFE_THROW_SOUND_PITCH = 0.6F;
     private static final int MELEE_BLOOD_PARTICLE_COUNT = 10;
+    private static final String MURDERER_BUY_KNIFE_DISABLED_NAME = "&7&lBuy Knife&r &7• Right Click";
+    private static final String MURDERER_BUY_KNIFE_ENABLED_NAME = "&a&lBuy Knife&r &7• Right Click";
+    private static final String MURDERER_BUY_KNIFE_DISABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_BUY_KNIFE_DISABLED_NAME);
+    private static final String MURDERER_BUY_KNIFE_ENABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_BUY_KNIFE_ENABLED_NAME);
+    private static final int MURDERER_BUY_KNIFE_COST = 5;
+    private static final int MURDERER_BUY_KNIFE_SLOT = 3;
     private static final Component MURDERER_KNIFE_NAME = ChatUtil.itemComponent("&7&oKnife", true);
     private static final Particle KNIFE_TRAIL_PARTICLE = resolveTrailParticle();
 
@@ -67,6 +82,49 @@ public class KnifeFeature {
 
     public KnifeFeature(Arena arena) {
         this.arena = arena;
+    }
+
+    public boolean isBuyKnifeItem(String legacyName) {
+        return MURDERER_BUY_KNIFE_DISABLED_LEGACY.equals(legacyName)
+                || MURDERER_BUY_KNIFE_ENABLED_LEGACY.equals(legacyName);
+    }
+
+    public void updateBuyKnifeItem(UUID murdererId, java.util.List<UUID> alivePlayers, EmeraldFeature emeraldFeature) {
+        if (murdererId == null || alivePlayers == null || !alivePlayers.contains(murdererId)) {
+            return;
+        }
+        Player murderer = Bukkit.getPlayer(murdererId);
+        if (murderer == null || !murderer.isOnline()) {
+            return;
+        }
+        boolean canBuy = emeraldFeature != null
+                && emeraldFeature.getMissingEmeralds(murdererId, MURDERER_BUY_KNIFE_COST) == 0;
+        setMurdererBuyKnifeItem(murderer, canBuy);
+    }
+
+    public void handleBuyKnifeInteract(Player murderer, GameSession session, EmeraldFeature emeraldFeature) {
+        if (murderer == null || session == null || emeraldFeature == null) {
+            return;
+        }
+        if (!isAliveMurderer(murderer, session)) {
+            return;
+        }
+        int missingEmeralds = emeraldFeature.getMissingEmeralds(murderer.getUniqueId(), MURDERER_BUY_KNIFE_COST);
+        if (missingEmeralds > 0) {
+            sendNeedEmeraldsMessage(murderer, MURDERER_BUY_KNIFE_COST);
+            setMurdererBuyKnifeItem(murderer, false);
+            return;
+        }
+        if (!emeraldFeature.trySpendEmeralds(murderer, MURDERER_BUY_KNIFE_COST)) {
+            sendNeedEmeraldsMessage(murderer, MURDERER_BUY_KNIFE_COST);
+            setMurdererBuyKnifeItem(murderer, false);
+            return;
+        }
+        giveKnifeToMurderer(murderer);
+        setMurdererBuyKnifeItem(
+                murderer,
+                emeraldFeature.getMissingEmeralds(murderer.getUniqueId(), MURDERER_BUY_KNIFE_COST) == 0
+        );
     }
 
     public boolean handleThrowInteract(PlayerInteractEvent event, Player shooter, GameSession session) {
@@ -460,6 +518,40 @@ public class KnifeFeature {
         shooter.getInventory().setItemInMainHand(held);
     }
 
+    private void giveKnifeToMurderer(Player murderer) {
+        if (murderer == null || !murderer.isOnline()) {
+            return;
+        }
+        ItemStack knife = createKnifeItem();
+        Map<Integer, ItemStack> leftovers = murderer.getInventory().addItem(knife);
+        for (ItemStack leftover : leftovers.values()) {
+            murderer.getWorld().dropItemNaturally(murderer.getLocation(), leftover);
+        }
+    }
+
+    private ItemStack createKnifeItem() {
+        ItemStack knife = new ItemStack(Material.WOODEN_SWORD, 1);
+        ItemMeta meta = knife.getItemMeta();
+        if (meta == null) {
+            return knife;
+        }
+        meta.displayName(MURDERER_KNIFE_NAME);
+        NamespacedKey key = new NamespacedKey(MurderPlugin.getInstance(), "instant_attack_speed");
+        meta.addAttributeModifier(
+                Attribute.ATTACK_SPEED,
+                new AttributeModifier(
+                        key,
+                        1000.0,
+                        AttributeModifier.Operation.ADD_NUMBER,
+                        EquipmentSlotGroup.HAND
+                )
+        );
+        meta.setUnbreakable(true);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+        knife.setItemMeta(meta);
+        return knife;
+    }
+
     private void playKnifeThrowSoundToArena() {
         for (UUID playerId : arena.getActivePlayers()) {
             Player player = Bukkit.getPlayer(playerId);
@@ -579,5 +671,57 @@ public class KnifeFeature {
         } catch (IllegalArgumentException ignored) {
         }
         return Particle.CRIT;
+    }
+
+    private void sendNeedEmeraldsMessage(Player player, int requiredCost) {
+        if (player == null) {
+            return;
+        }
+        int required = Math.max(1, requiredCost);
+        player.sendMessage(ChatUtil.component("&cYou need " + required + " emeralds to do that!"));
+    }
+
+    private void setMurdererBuyKnifeItem(Player murderer, boolean active) {
+        if (murderer == null) {
+            return;
+        }
+        if (isQuickChatMenuOpen(murderer)) {
+            return;
+        }
+        Material expectedMaterial = active ? Material.LIME_DYE : Material.GRAY_DYE;
+        String expectedLegacyName = active ? MURDERER_BUY_KNIFE_ENABLED_LEGACY : MURDERER_BUY_KNIFE_DISABLED_LEGACY;
+        ItemStack current = murderer.getInventory().getItem(MURDERER_BUY_KNIFE_SLOT);
+        if (current != null && current.getType() == expectedMaterial && current.hasItemMeta()) {
+            Component currentName = current.getItemMeta().displayName();
+            if (currentName != null) {
+                String legacy = org.bukkit.ChatColor.stripColor(LegacyComponentSerializer.legacySection().serialize(currentName));
+                String expected = org.bukkit.ChatColor.stripColor(expectedLegacyName);
+                if (legacy != null && legacy.equals(expected)) {
+                    return;
+                }
+            }
+        }
+        murderer.getInventory().setItem(
+                MURDERER_BUY_KNIFE_SLOT,
+                new fr.zeyx.murder.util.ItemBuilder(expectedMaterial)
+                        .setName(ChatUtil.itemComponent(active ? MURDERER_BUY_KNIFE_ENABLED_NAME : MURDERER_BUY_KNIFE_DISABLED_NAME))
+                        .toItemStack()
+        );
+    }
+
+    private boolean isQuickChatMenuOpen(Player player) {
+        if (player == null) {
+            return false;
+        }
+        ItemStack slotEight = player.getInventory().getItem(8);
+        if (slotEight == null || !slotEight.hasItemMeta()) {
+            return false;
+        }
+        Component itemName = slotEight.getItemMeta().displayName();
+        if (itemName == null) {
+            return false;
+        }
+        String legacyName = LegacyComponentSerializer.legacySection().serialize(itemName);
+        return QuickChatMenu.CLOSE_NAME.equals(legacyName);
     }
 }

@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class ArenaTabListService implements Listener {
+public class TabListService implements Listener {
 
     private final ArenaManager arenaManager;
     private final SecretIdentityManager secretIdentityManager;
@@ -35,7 +35,7 @@ public class ArenaTabListService implements Listener {
     private BukkitTask syncTask;
     private boolean disabled;
 
-    public ArenaTabListService(ArenaManager arenaManager, SecretIdentityManager secretIdentityManager) {
+    public TabListService(ArenaManager arenaManager, SecretIdentityManager secretIdentityManager) {
         this.arenaManager = arenaManager;
         this.secretIdentityManager = secretIdentityManager;
     }

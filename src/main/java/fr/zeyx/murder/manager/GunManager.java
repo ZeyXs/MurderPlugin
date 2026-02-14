@@ -27,15 +27,15 @@ public class GunManager {
     }
 
     public ItemStack createGunItem() {
-        ItemStack gun = new ItemBuilder(Material.WOODEN_HOE).setName(ChatUtil.itemComponent(DETECTIVE_GUN_NAME, true)).toItemStack();
-        ItemMeta gunMeta = gun.getItemMeta();
-        if (gunMeta == null) {
-            return gun;
+        return createGunItemWithName(ChatUtil.itemComponent(DETECTIVE_GUN_NAME, true));
+    }
+
+    public ItemStack createGunItemVersion(int version) {
+        int safeVersion = Math.max(1, version);
+        if (safeVersion <= 1) {
+            return createGunItem();
         }
-        markItemAsGun(gunMeta);
-        applyInstantAttackSpeed(gunMeta);
-        gun.setItemMeta(gunMeta);
-        return gun;
+        return createGunItemWithName(ChatUtil.itemComponent("&9Gun v" + safeVersion + ".0"));
     }
 
     public boolean isGunItem(ItemStack item) {
@@ -67,6 +67,18 @@ public class GunManager {
 
     private void markItemAsGun(ItemMeta meta) {
         meta.getPersistentDataContainer().set(gunItemKey, PersistentDataType.BYTE, (byte) 1);
+    }
+
+    private ItemStack createGunItemWithName(net.kyori.adventure.text.Component displayName) {
+        ItemStack gun = new ItemBuilder(Material.WOODEN_HOE).setName(displayName).toItemStack();
+        ItemMeta gunMeta = gun.getItemMeta();
+        if (gunMeta == null) {
+            return gun;
+        }
+        markItemAsGun(gunMeta);
+        applyInstantAttackSpeed(gunMeta);
+        gun.setItemMeta(gunMeta);
+        return gun;
     }
 
     private void applyInstantAttackSpeed(ItemMeta meta) {

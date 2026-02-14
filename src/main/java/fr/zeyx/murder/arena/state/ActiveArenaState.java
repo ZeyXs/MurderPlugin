@@ -5,6 +5,7 @@ import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.task.ActiveArenaTask;
 import fr.zeyx.murder.game.GameSession;
+import fr.zeyx.murder.game.feature.EmeraldFeature;
 import fr.zeyx.murder.game.feature.GunFeature;
 import fr.zeyx.murder.game.feature.KnifeFeature;
 import fr.zeyx.murder.game.service.TabCompletionService;
@@ -32,6 +33,7 @@ public class ActiveArenaState extends PlayingArenaState {
     private final TabCompletionService tabCompletionService;
     private final GunFeature gunFeature;
     private final KnifeFeature knifeFeature;
+    private final EmeraldFeature emeraldFeature;
     private ActiveArenaTask activeArenaTask;
     private GameSession session;
 
@@ -42,13 +44,14 @@ public class ActiveArenaState extends PlayingArenaState {
         this.tabCompletionService = new TabCompletionService(gameManager.getSecretIdentityManager());
         this.gunFeature = new GunFeature(gameManager, arena);
         this.knifeFeature = new KnifeFeature(arena);
+        this.emeraldFeature = new EmeraldFeature(arena, gunFeature);
     }
 
     @Override
     public void onEnable() {
         super.onEnable();
 
-        session = new GameSession(gameManager, arena, gunFeature, knifeFeature);
+        session = new GameSession(gameManager, arena, gunFeature, knifeFeature, emeraldFeature);
         session.start();
 
         activeArenaTask = new ActiveArenaTask(gameManager, arena, this, session);
@@ -62,6 +65,7 @@ public class ActiveArenaState extends PlayingArenaState {
         }
         gunFeature.clearRuntimeState();
         knifeFeature.clearRuntimeState();
+        emeraldFeature.clearRuntimeState();
         super.onDisable();
     }
 
@@ -145,12 +149,14 @@ public class ActiveArenaState extends PlayingArenaState {
     public void onEntityPickupItem(EntityPickupItemEvent event) {
         knifeFeature.onKnifePickup(event, session);
         gunFeature.onGunPickup(event, session);
+        emeraldFeature.onEmeraldPickup(event, session);
     }
 
     @EventHandler
     public void onItemDespawn(ItemDespawnEvent event) {
         knifeFeature.onKnifeDespawn(event);
         gunFeature.onGunDespawn(event);
+        emeraldFeature.onEmeraldDespawn(event);
     }
 
     @Override
@@ -188,5 +194,9 @@ public class ActiveArenaState extends PlayingArenaState {
 
     public void clearAllGunItems() {
         gunFeature.clearAllDroppedGuns();
+    }
+
+    public void clearAllEmeraldItems() {
+        emeraldFeature.clearAllSpawnedEmeralds();
     }
 }

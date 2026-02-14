@@ -54,6 +54,7 @@ public class ActiveArenaTask extends BukkitRunnable {
             if (activeArenaState != null) {
                 activeArenaState.clearAllKnifeItems();
                 activeArenaState.clearAllGunItems();
+                activeArenaState.clearAllEmeraldItems();
             }
             session.endGame();
 

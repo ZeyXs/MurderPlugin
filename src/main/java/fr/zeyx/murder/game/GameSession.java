@@ -3,6 +3,7 @@ package fr.zeyx.murder.game;
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.feature.EndGameMessenger;
 import fr.zeyx.murder.game.feature.EndGameFeature;
+import fr.zeyx.murder.game.feature.EmeraldFeature;
 import fr.zeyx.murder.game.feature.GunFeature;
 import fr.zeyx.murder.game.feature.KnifeFeature;
 import fr.zeyx.murder.game.feature.LoadoutFeature;
@@ -53,6 +54,7 @@ public class GameSession {
     private final EndGameFeature endGameFeature;
     private final GunFeature gunFeature;
     private final KnifeFeature knifeFeature;
+    private final EmeraldFeature emeraldFeature;
 
     private UUID murdererId;
     private UUID detectiveId;
@@ -61,17 +63,18 @@ public class GameSession {
     private int roundTimeLeftSeconds = ROUND_DURATION_SECONDS;
     private boolean murdererUnsuccessful;
 
-    public GameSession(GameManager gameManager, Arena arena, GunFeature gunFeature, KnifeFeature knifeFeature) {
+    public GameSession(GameManager gameManager, Arena arena, GunFeature gunFeature, KnifeFeature knifeFeature, EmeraldFeature emeraldFeature) {
         this.gameManager = gameManager;
         this.arena = arena;
         this.gunFeature = gunFeature;
         this.knifeFeature = knifeFeature;
+        this.emeraldFeature = emeraldFeature;
         this.quickChatFeature = new QuickChatFeature(arena, gameManager.getSecretIdentityManager(), this::getAlivePlayers);
         this.identityService = new IdentityService(gameManager);
         this.loadoutFeature = new LoadoutFeature(gameManager);
         this.aliveDisplayService = new AliveDisplayService(arena, identityService);
         this.murdererVignetteService = new MurdererVignetteService();
-        this.switchIdentityFeature = new SwitchIdentityFeature(gameManager);
+        this.switchIdentityFeature = new SwitchIdentityFeature(gameManager, emeraldFeature);
         this.spectatorFeature = new SpectatorFeature(
                 gameManager,
                 arena,
@@ -131,16 +134,18 @@ public class GameSession {
             cacheIdentityDisplayName(playerId);
         }
 
+        emeraldFeature.start(alivePlayers);
         aliveDisplayService.updateAliveCountDisplays(alivePlayers, murdererId);
         murdererVignetteService.apply(murdererId);
         aliveDisplayService.updateChatCompletionsForActivePlayers();
         spectatorFeature.refreshPlayerVisibility();
         registerCurrentMurdererIdentity();
         switchIdentityFeature.updateSwitchIdentityItem(murdererId, alivePlayers, roundParticipants);
-        gameManager.getArenaTabListService().refreshNow();
+        gameManager.getTabListService().refreshNow();
     }
 
     public void endGame() {
+        emeraldFeature.clearRuntimeState();
         murdererVignetteService.clearAll();
         endGameMessenger.sendRoleRevealMessages();
         endGameMessenger.sendWinnerMessage(murdererId, murdererKillerId, murdererUnsuccessful);
@@ -155,7 +160,7 @@ public class GameSession {
                 hasMurdererWon(),
                 spectatorFeature
         );
-        gameManager.getArenaTabListService().refreshNow();
+        gameManager.getTabListService().refreshNow();
     }
 
     public List<UUID> getAlivePlayers() {
@@ -174,6 +179,8 @@ public class GameSession {
     }
 
     public void tick() {
+        emeraldFeature.tick(this);
+        knifeFeature.updateBuyKnifeItem(murdererId, alivePlayers, emeraldFeature);
         switchIdentityFeature.updateSwitchIdentityItem(murdererId, alivePlayers, roundParticipants);
         murdererVignetteService.tick(murdererId);
     }
@@ -196,7 +203,7 @@ public class GameSession {
         aliveDisplayService.updateAliveCountDisplays(alivePlayers, murdererId);
         spectatorFeature.updateSpectatorBoards(roundTimeLeftSeconds);
         spectatorFeature.refreshPlayerVisibility();
-        gameManager.getArenaTabListService().refreshNow();
+        gameManager.getTabListService().refreshNow();
     }
 
     public boolean handleInteract(Player player, Component itemName, String legacyName) {
@@ -218,6 +225,10 @@ public class GameSession {
                     this::resolveIdentityDisplayName,
                     this::onMurdererIdentityChanged
             );
+            return true;
+        }
+        if (knifeFeature != null && knifeFeature.isBuyKnifeItem(legacyName)) {
+            knifeFeature.handleBuyKnifeInteract(player, this, emeraldFeature);
             return true;
         }
         if (quickChatFeature.handleInteract(player, legacyName)) {
@@ -521,7 +532,7 @@ public class GameSession {
         cacheIdentityDisplayName(playerId);
         registerCurrentMurdererIdentity();
         aliveDisplayService.updateChatCompletionsForActivePlayers();
-        gameManager.getArenaTabListService().refreshNow();
+        gameManager.getTabListService().refreshNow();
     }
 
     private String resolveRealPlayerName(UUID playerId) {

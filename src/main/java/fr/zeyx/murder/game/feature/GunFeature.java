@@ -36,9 +36,11 @@ public class GunFeature {
     private static final double GUN_ARROW_SPEED = 4D;
     private static final float GUN_SOUND_VOLUME = 1.0F;
     private static final float GUN_SOUND_PITCH = 2.0F;
-    private static final long GUN_COOLDOWN_MILLIS = 2750L;
+    private static final long BASE_GUN_COOLDOWN_MILLIS = 2750L;
+    private static final double UPGRADED_COOLDOWN_MULTIPLIER = 0.5D;
+    private static final int BASE_GUN_VERSION = 1;
     private static final int GUN_ARROW_MAX_LIFETIME_TICKS = 20 * 3;
-    private static final long INNOCENT_GUN_PICKUP_LOCK_MILLIS = 10_000L;
+    private static final long INNOCENT_GUN_PICKUP_LOCK_MILLIS = 10000L;
     private static final int INNOCENT_SHOOTER_BLINDNESS_TICKS = 20 * 10;
     private static final Particle GUN_TRAIL_PARTICLE = resolveTrailParticle();
 
@@ -48,6 +50,7 @@ public class GunFeature {
     private final Map<UUID, Long> gunCooldownEndAt = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> gunReloadTasks = new ConcurrentHashMap<>();
     private final Map<UUID, DroppedGunData> droppedGunItems = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> gunUpgradeLevels = new ConcurrentHashMap<>();
 
     public GunFeature(GameManager gameManager, Arena arena) {
         this.gameManager = gameManager;
@@ -118,7 +121,39 @@ public class GunFeature {
         }
         gunReloadTasks.clear();
         gunCooldownEndAt.clear();
+        gunUpgradeLevels.clear();
         clearAllDroppedGuns();
+    }
+
+    public int getGunUpgradeLevel(UUID playerId) {
+        if (playerId == null) {
+            return 0;
+        }
+        return Math.max(0, gunUpgradeLevels.getOrDefault(playerId, 0));
+    }
+
+    public int getGunVersion(UUID playerId) {
+        return BASE_GUN_VERSION + getGunUpgradeLevel(playerId);
+    }
+
+    public boolean applyEmeraldUpgrade(Player player) {
+        if (player == null || !player.isOnline() || player.getWorld() == null) {
+            return false;
+        }
+        UUID playerId = player.getUniqueId();
+        if (getGunCount(player) <= 0) {
+            // First trade without a gun gives the current base version (v1 by default).
+            return giveGunVersion(player, getGunVersion(playerId));
+        }
+
+        int previousLevel = getGunUpgradeLevel(playerId);
+        int nextLevel = previousLevel + 1;
+        int nextVersion = BASE_GUN_VERSION + nextLevel;
+        if (!upgradePlayerGunItem(player, nextVersion)) {
+            return false;
+        }
+        gunUpgradeLevels.put(playerId, nextLevel);
+        return true;
     }
 
     public int getGunCount(Player player) {
@@ -136,6 +171,39 @@ public class GunFeature {
             count += offHand.getAmount();
         }
         return count;
+    }
+
+    public boolean giveGun(Player player) {
+        if (player == null || !player.isOnline() || player.getWorld() == null) {
+            return false;
+        }
+        ItemStack gun = gameManager.getGunManager().createGunItem();
+        Map<Integer, ItemStack> leftovers = player.getInventory().addItem(gun);
+        for (ItemStack leftover : leftovers.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+        }
+        return true;
+    }
+
+    public boolean upgradePlayerGunItem(Player player, int targetVersion) {
+        if (player == null || !player.isOnline()) {
+            return false;
+        }
+        boolean updated = false;
+        for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
+            ItemStack item = player.getInventory().getItem(slot);
+            if (!gameManager.getGunManager().isGunItem(item)) {
+                continue;
+            }
+            player.getInventory().setItem(slot, createGunVersionStack(item.getAmount(), targetVersion));
+            updated = true;
+        }
+        ItemStack offHand = player.getInventory().getItemInOffHand();
+        if (gameManager.getGunManager().isGunItem(offHand)) {
+            player.getInventory().setItemInOffHand(createGunVersionStack(offHand.getAmount(), targetVersion));
+            updated = true;
+        }
+        return updated;
     }
 
     public void clearAllDroppedGuns() {
@@ -259,7 +327,8 @@ public class GunFeature {
 
     private void startReloadCooldown(Player shooter, GameSession session) {
         UUID playerId = shooter.getUniqueId();
-        long cooldownEndAt = System.currentTimeMillis() + GUN_COOLDOWN_MILLIS;
+        long cooldownDuration = resolveCooldownDuration(playerId);
+        long cooldownEndAt = System.currentTimeMillis() + cooldownDuration;
         gunCooldownEndAt.put(playerId, cooldownEndAt);
         shooter.setExp(0.0F);
         stopReloadTask(playerId);
@@ -278,7 +347,7 @@ public class GunFeature {
                     return;
                 }
                 long remaining = Math.max(0L, endAt - System.currentTimeMillis());
-                float progress = 1.0F - (float) remaining / (float) GUN_COOLDOWN_MILLIS;
+                float progress = 1.0F - (float) remaining / (float) cooldownDuration;
                 player.setExp(Math.max(0.0F, Math.min(1.0F, progress)));
                 if (remaining == 0L) {
                     clearCooldown(playerId, true);
@@ -287,6 +356,12 @@ public class GunFeature {
         }.runTaskTimer(MurderPlugin.getInstance(), 1L, 1L);
 
         gunReloadTasks.put(playerId, reloadTask);
+    }
+
+    private long resolveCooldownDuration(UUID playerId) {
+        int upgradeLevel = getGunUpgradeLevel(playerId);
+        double reductionFactor = Math.pow(UPGRADED_COOLDOWN_MULTIPLIER, Math.max(0, upgradeLevel));
+        return Math.max(1L, Math.round(BASE_GUN_COOLDOWN_MILLIS * reductionFactor));
     }
 
     private void stopReloadTask(UUID playerId) {
@@ -357,6 +432,7 @@ public class GunFeature {
         if (shooter == null || !shooter.isOnline()) {
             return;
         }
+        resetGunUpgradeProgress(shooter.getUniqueId());
         long blockedUntilAt = System.currentTimeMillis() + INNOCENT_GUN_PICKUP_LOCK_MILLIS;
         dropGunFromPlayer(shooter, shooter.getUniqueId(), blockedUntilAt);
         clearCooldown(shooter.getUniqueId(), true);
@@ -400,6 +476,31 @@ public class GunFeature {
             return oneGun;
         }
         return null;
+    }
+
+    private boolean giveGunVersion(Player player, int version) {
+        if (player == null || !player.isOnline() || player.getWorld() == null) {
+            return false;
+        }
+        ItemStack gun = gameManager.getGunManager().createGunItemVersion(version);
+        Map<Integer, ItemStack> leftovers = player.getInventory().addItem(gun);
+        for (ItemStack leftover : leftovers.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+        }
+        return true;
+    }
+
+    private ItemStack createGunVersionStack(int amount, int version) {
+        ItemStack upgraded = gameManager.getGunManager().createGunItemVersion(version);
+        upgraded.setAmount(Math.max(1, amount));
+        return upgraded;
+    }
+
+    private void resetGunUpgradeProgress(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        gunUpgradeLevels.remove(playerId);
     }
 
     private boolean isInnocent(Role role) {

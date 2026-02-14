@@ -27,13 +27,16 @@ public class SwitchIdentityFeature {
     private static final String MURDERER_SWITCH_IDENTITY_DISABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_SWITCH_IDENTITY_DISABLED_NAME);
     private static final String MURDERER_SWITCH_IDENTITY_ENABLED_LEGACY = ChatColor.translateAlternateColorCodes('&', MURDERER_SWITCH_IDENTITY_ENABLED_NAME);
     private static final String NO_DEAD_BODY_NEARBY_MESSAGE = "&cNo dead body nearby!";
+    private static final int MURDERER_SWITCH_IDENTITY_COST = 3;
     private static final int MURDERER_SWITCH_IDENTITY_SLOT = 4;
     private static final double MURDERER_SWITCH_IDENTITY_RADIUS = 1.75D;
 
     private final GameManager gameManager;
+    private final EmeraldFeature emeraldFeature;
 
-    public SwitchIdentityFeature(GameManager gameManager) {
+    public SwitchIdentityFeature(GameManager gameManager, EmeraldFeature emeraldFeature) {
         this.gameManager = gameManager;
+        this.emeraldFeature = emeraldFeature;
     }
 
     public boolean isSwitchIdentityItem(String legacyName) {
@@ -61,6 +64,19 @@ public class SwitchIdentityFeature {
                 || corpseIdentity.getIdentityName().isBlank()) {
             setMurdererSwitchIdentityItem(murderer, false);
             sendNoDeadBodyNearbyMessage(murderer);
+            return;
+        }
+        int missingEmeralds = emeraldFeature == null
+                ? 0
+                : emeraldFeature.getMissingEmeralds(murdererId, MURDERER_SWITCH_IDENTITY_COST);
+        if (missingEmeralds > 0) {
+            sendNeedEmeraldsMessage(murderer, MURDERER_SWITCH_IDENTITY_COST);
+            setMurdererSwitchIdentityItem(murderer, false);
+            return;
+        }
+        if (emeraldFeature != null && !emeraldFeature.trySpendEmeralds(murderer, MURDERER_SWITCH_IDENTITY_COST)) {
+            sendNeedEmeraldsMessage(murderer, MURDERER_SWITCH_IDENTITY_COST);
+            setMurdererSwitchIdentityItem(murderer, false);
             return;
         }
 
@@ -99,7 +115,9 @@ public class SwitchIdentityFeature {
         refreshIdentityChestplate(murderer);
         gameManager.getScoreboardManager().showGameBoard(murderer, "&4Murderer", newIdentityDisplay);
         murderer.sendMessage(ChatUtil.component("&aYou switched identities! You are now: " + newIdentityDisplay));
-        setMurdererSwitchIdentityItem(murderer, true);
+        boolean stillHasEnoughEmeralds = emeraldFeature == null
+                || emeraldFeature.getMissingEmeralds(murdererId, MURDERER_SWITCH_IDENTITY_COST) == 0;
+        setMurdererSwitchIdentityItem(murderer, stillHasEnoughEmeralds);
     }
 
     public void updateSwitchIdentityItem(UUID murdererId, List<UUID> alivePlayers, List<UUID> roundParticipants) {
@@ -112,7 +130,10 @@ public class SwitchIdentityFeature {
         }
         CorpseManager.CorpseIdentity corpseIdentity = gameManager.getCorpseManager()
                 .findNearestCorpseIdentity(murderer.getLocation(), MURDERER_SWITCH_IDENTITY_RADIUS);
-        boolean canActivate = corpseIdentity != null && roundParticipants.contains(corpseIdentity.getSourcePlayerId());
+        boolean nearEligibleCorpse = corpseIdentity != null && roundParticipants.contains(corpseIdentity.getSourcePlayerId());
+        boolean hasEnoughEmeralds = emeraldFeature == null
+                || emeraldFeature.getMissingEmeralds(murdererId, MURDERER_SWITCH_IDENTITY_COST) == 0;
+        boolean canActivate = nearEligibleCorpse && hasEnoughEmeralds;
         setMurdererSwitchIdentityItem(murderer, canActivate);
     }
 
@@ -191,5 +212,13 @@ public class SwitchIdentityFeature {
             return;
         }
         player.sendMessage(ChatColor.translateAlternateColorCodes('&', NO_DEAD_BODY_NEARBY_MESSAGE));
+    }
+
+    private void sendNeedEmeraldsMessage(Player player, int requiredCost) {
+        if (player == null) {
+            return;
+        }
+        int required = Math.max(1, requiredCost);
+        player.sendMessage(ChatUtil.component("&cYou need " + required + " emeralds to do that!"));
     }
 }
