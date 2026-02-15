@@ -22,10 +22,6 @@ repositories {
         url = "https://repo.papermc.io/repository/maven-public/"
     }
     maven {
-        name = "mvn-wesjd-net"
-        url = "https://mvn.wesjd.net/"
-    }
-    maven {
         name = "citizens-repo"
         url = "https://maven.citizensnpcs.co/repo"
     }
@@ -45,12 +41,14 @@ repositories {
 
 dependencies {
     paperweightDevelopmentBundle("io.papermc.paper:dev-bundle:1.21.11-R0.1-SNAPSHOT")
+
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     compileOnly("com.google.code.gson:gson:2.13.2")
     compileOnly("net.citizensnpcs:citizensapi:2.0.41-SNAPSHOT")
-    implementation("net.wesjd:anvilgui:1.10.11-SNAPSHOT")
+
     implementation("fr.mrmicky:fastboard:2.1.5")
     implementation("dev.triumphteam:triumph-gui:3.1.13")
+    implementation("com.mojang:brigadier:1.0.18")
 }
 
 tasks {
@@ -90,7 +88,6 @@ processResources {
  */
 tasks.shadowJar {
     archiveClassifier.set("")
-    relocate("net.wesjd.anvilgui", "fr.zeyx.murder.anvilgui")
     relocate("fr.mrmicky.fastboard", "fr.zeyx.murder.fastboard")
 }
 

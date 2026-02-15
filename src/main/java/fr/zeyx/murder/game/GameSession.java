@@ -71,7 +71,7 @@ public class GameSession {
         this.emeraldFeature = emeraldFeature;
         this.quickChatFeature = new QuickChatFeature(arena, gameManager.getSecretIdentityManager(), this::getAlivePlayers);
         this.identityService = new IdentityService(gameManager);
-        this.loadoutFeature = new LoadoutFeature(gameManager);
+        this.loadoutFeature = new LoadoutFeature(gameManager, gunFeature);
         this.aliveDisplayService = new AliveDisplayService(arena, identityService);
         this.murdererVignetteService = new MurdererVignetteService();
         this.switchIdentityFeature = new SwitchIdentityFeature(gameManager, emeraldFeature);

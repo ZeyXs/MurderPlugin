@@ -35,9 +35,11 @@ public class LoadoutFeature {
     private static final String MURDERER_BUY_KNIFE_NAME = "&7&lBuy Knife&r &7• Right Click";
     private static final String MURDERER_SWITCH_IDENTITY_NAME = "&7&lSwitch Identity&r &7• Right Click";
     private final GameManager gameManager;
+    private final GunFeature gunFeature;
 
-    public LoadoutFeature(GameManager gameManager) {
+    public LoadoutFeature(GameManager gameManager, GunFeature gunFeature) {
         this.gameManager = gameManager;
+        this.gunFeature = gunFeature;
     }
 
     public int getLockedFoodLevel(Role role) {
@@ -79,7 +81,7 @@ public class LoadoutFeature {
             player.getInventory().setItem(3, new ItemBuilder(Material.GRAY_DYE).setName(TextUtil.itemComponent(MURDERER_BUY_KNIFE_NAME)).toItemStack());
             player.getInventory().setItem(4, new ItemBuilder(Material.GRAY_DYE).setName(TextUtil.itemComponent(MURDERER_SWITCH_IDENTITY_NAME)).toItemStack());
         } else if (role == Role.DETECTIVE) {
-            ItemStack gun = gameManager.getGunManager().createGunItem();
+            ItemStack gun = gunFeature.createGunItem();
             player.getInventory().setItem(0, gun);
         }
         player.getInventory().setItem(8, QuickChatMenu.buildChatBook());

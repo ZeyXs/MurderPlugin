@@ -5,20 +5,30 @@ import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.Role;
 import fr.zeyx.murder.manager.GameManager;
+import fr.zeyx.murder.util.ItemBuilder;
 import fr.zeyx.murder.util.TextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.ItemDespawnEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -33,6 +43,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class GunFeature {
 
+    public static final String DETECTIVE_GUN_NAME = "&7&oGun";
+
     private static final double GUN_ARROW_SPEED = 4D;
     private static final float GUN_SOUND_VOLUME = 1.0F;
     private static final float GUN_SOUND_PITCH = 2.0F;
@@ -46,6 +58,8 @@ public class GunFeature {
 
     private final GameManager gameManager;
     private final Arena arena;
+    private final NamespacedKey gunItemKey;
+    private final NamespacedKey gunProjectileKey;
     private final Map<UUID, BukkitTask> gunTrailTasks = new ConcurrentHashMap<>();
     private final Map<UUID, Long> gunCooldownEndAt = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> gunReloadTasks = new ConcurrentHashMap<>();
@@ -55,6 +69,8 @@ public class GunFeature {
     public GunFeature(GameManager gameManager, Arena arena) {
         this.gameManager = gameManager;
         this.arena = arena;
+        this.gunItemKey = new NamespacedKey(MurderPlugin.getInstance(), "gun_item");
+        this.gunProjectileKey = new NamespacedKey(MurderPlugin.getInstance(), "gun_projectile");
     }
 
     private static final class DroppedGunData {
@@ -74,7 +90,7 @@ public class GunFeature {
     }
 
     public boolean handleInteract(PlayerInteractEvent event, Player shooter, GameSession session) {
-        if (!gameManager.getGunManager().isGunItem(event.getItem())) {
+        if (!isGunItem(event.getItem())) {
             return false;
         }
 
@@ -90,7 +106,7 @@ public class GunFeature {
         Vector velocity = shooter.getEyeLocation().getDirection().normalize().multiply(GUN_ARROW_SPEED);
         arrow.setVelocity(velocity);
         arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
-        gameManager.getGunManager().markGunProjectile(arrow);
+        markGunProjectile(arrow);
         shooter.getWorld().playSound(shooter.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, GUN_SOUND_VOLUME, GUN_SOUND_PITCH);
 
         startReloadCooldown(shooter, session);
@@ -99,7 +115,7 @@ public class GunFeature {
     }
 
     public void onProjectileHit(ProjectileHitEvent event, GameSession session) {
-        if (!(event.getEntity() instanceof Arrow arrow) || !gameManager.getGunManager().isGunProjectile(arrow)) {
+        if (!(event.getEntity() instanceof Arrow arrow) || !isGunProjectile(arrow)) {
             return;
         }
         if (event.getHitEntity() instanceof Player victim && arrow.getShooter() instanceof Player shooter) {
@@ -162,12 +178,12 @@ public class GunFeature {
         }
         int count = 0;
         for (ItemStack item : player.getInventory().getContents()) {
-            if (gameManager.getGunManager().isGunItem(item)) {
+            if (isGunItem(item)) {
                 count += item.getAmount();
             }
         }
         ItemStack offHand = player.getInventory().getItemInOffHand();
-        if (gameManager.getGunManager().isGunItem(offHand)) {
+        if (isGunItem(offHand)) {
             count += offHand.getAmount();
         }
         return count;
@@ -177,7 +193,7 @@ public class GunFeature {
         if (player == null || !player.isOnline() || player.getWorld() == null) {
             return false;
         }
-        ItemStack gun = gameManager.getGunManager().createGunItem();
+        ItemStack gun = createGunItem();
         Map<Integer, ItemStack> leftovers = player.getInventory().addItem(gun);
         for (ItemStack leftover : leftovers.values()) {
             player.getWorld().dropItemNaturally(player.getLocation(), leftover);
@@ -192,14 +208,14 @@ public class GunFeature {
         boolean updated = false;
         for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
             ItemStack item = player.getInventory().getItem(slot);
-            if (!gameManager.getGunManager().isGunItem(item)) {
+            if (!isGunItem(item)) {
                 continue;
             }
             player.getInventory().setItem(slot, createGunVersionStack(item.getAmount(), targetVersion));
             updated = true;
         }
         ItemStack offHand = player.getInventory().getItemInOffHand();
-        if (gameManager.getGunManager().isGunItem(offHand)) {
+        if (isGunItem(offHand)) {
             player.getInventory().setItemInOffHand(createGunVersionStack(offHand.getAmount(), targetVersion));
             updated = true;
         }
@@ -218,7 +234,7 @@ public class GunFeature {
         Set<org.bukkit.World> worlds = collectArenaWorlds();
         for (org.bukkit.World world : worlds) {
             for (Item item : world.getEntitiesByClass(Item.class)) {
-                if (gameManager.getGunManager().isGunItem(item.getItemStack())) {
+                if (isGunItem(item.getItemStack())) {
                     item.remove();
                 }
             }
@@ -239,7 +255,7 @@ public class GunFeature {
 
     public void onGunPickup(EntityPickupItemEvent event, GameSession session) {
         ItemStack pickedStack = event.getItem().getItemStack();
-        if (!gameManager.getGunManager().isGunItem(pickedStack)) {
+        if (!isGunItem(pickedStack)) {
             return;
         }
 
@@ -272,7 +288,7 @@ public class GunFeature {
     }
 
     public void onGunDespawn(ItemDespawnEvent event) {
-        if (!gameManager.getGunManager().isGunItem(event.getEntity().getItemStack())) {
+        if (!isGunItem(event.getEntity().getItemStack())) {
             return;
         }
         event.setCancelled(true);
@@ -460,7 +476,7 @@ public class GunFeature {
         }
         for (int slot = 0; slot < player.getInventory().getSize(); slot++) {
             ItemStack slotItem = player.getInventory().getItem(slot);
-            if (!gameManager.getGunManager().isGunItem(slotItem)) {
+            if (!isGunItem(slotItem)) {
                 continue;
             }
             ItemStack oneGun = slotItem.clone();
@@ -482,7 +498,7 @@ public class GunFeature {
         if (player == null || !player.isOnline() || player.getWorld() == null) {
             return false;
         }
-        ItemStack gun = gameManager.getGunManager().createGunItemVersion(version);
+        ItemStack gun = createGunItemVersion(version);
         Map<Integer, ItemStack> leftovers = player.getInventory().addItem(gun);
         for (ItemStack leftover : leftovers.values()) {
             player.getWorld().dropItemNaturally(player.getLocation(), leftover);
@@ -491,9 +507,79 @@ public class GunFeature {
     }
 
     private ItemStack createGunVersionStack(int amount, int version) {
-        ItemStack upgraded = gameManager.getGunManager().createGunItemVersion(version);
+        ItemStack upgraded = createGunItemVersion(version);
         upgraded.setAmount(Math.max(1, amount));
         return upgraded;
+    }
+
+    public ItemStack createGunItem() {
+        return createGunItemWithName(TextUtil.itemComponent(DETECTIVE_GUN_NAME, true));
+    }
+
+    public ItemStack createGunItemVersion(int version) {
+        int safeVersion = Math.max(1, version);
+        if (safeVersion <= 1) {
+            return createGunItem();
+        }
+        return createGunItemWithName(TextUtil.itemComponent("&9Gun v" + safeVersion + ".0"));
+    }
+
+    public boolean isGunItem(ItemStack item) {
+        if (item == null || item.getType() != Material.WOODEN_HOE || !item.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        Byte marker = meta.getPersistentDataContainer().get(gunItemKey, PersistentDataType.BYTE);
+        if (marker != null && marker == (byte) 1) {
+            return true;
+        }
+        return TextUtil.itemComponent(DETECTIVE_GUN_NAME, true).equals(meta.displayName());
+    }
+
+    public void markGunProjectile(Projectile projectile) {
+        if (projectile == null) {
+            return;
+        }
+        projectile.getPersistentDataContainer().set(gunProjectileKey, PersistentDataType.BYTE, (byte) 1);
+    }
+
+    public boolean isGunProjectile(Projectile projectile) {
+        if (projectile == null) {
+            return false;
+        }
+        Byte marker = projectile.getPersistentDataContainer().get(gunProjectileKey, PersistentDataType.BYTE);
+        return marker != null && marker == (byte) 1;
+    }
+
+    private void markItemAsGun(ItemMeta meta) {
+        meta.getPersistentDataContainer().set(gunItemKey, PersistentDataType.BYTE, (byte) 1);
+    }
+
+    private ItemStack createGunItemWithName(net.kyori.adventure.text.Component displayName) {
+        ItemStack gun = new ItemBuilder(Material.WOODEN_HOE).setName(displayName).toItemStack();
+        ItemMeta gunMeta = gun.getItemMeta();
+        if (gunMeta == null) {
+            return gun;
+        }
+        markItemAsGun(gunMeta);
+        applyInstantAttackSpeed(gunMeta);
+        gun.setItemMeta(gunMeta);
+        return gun;
+    }
+
+    private void applyInstantAttackSpeed(ItemMeta meta) {
+        NamespacedKey key = new NamespacedKey(MurderPlugin.getInstance(), "gun_instant_attack_speed");
+        meta.addAttributeModifier(
+                Attribute.ATTACK_SPEED,
+                new AttributeModifier(
+                        key,
+                        1000.0,
+                        AttributeModifier.Operation.ADD_NUMBER,
+                        EquipmentSlotGroup.HAND
+                )
+        );
+        meta.setUnbreakable(true);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
     }
 
     private void resetGunUpgradeProgress(UUID playerId) {

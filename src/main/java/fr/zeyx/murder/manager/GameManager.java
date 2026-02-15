@@ -23,7 +23,6 @@ public class GameManager {
     private final SecretIdentityManager secretIdentityManager;
     private final TabListService tabListService;
     private final CorpseManager corpseManager;
-    private final GunManager gunManager;
 
     public GameManager() {
         this.configurationManager = new ConfigurationManager();
@@ -33,7 +32,6 @@ public class GameManager {
         this.secretIdentityManager = new SecretIdentityManager(configurationManager, arenaManager);
         this.tabListService = new TabListService(arenaManager, secretIdentityManager);
         this.corpseManager = new CorpseManager(MurderPlugin.getInstance());
-        this.gunManager = new GunManager();
         registerListeners();
         tabListService.start();
     }
@@ -64,10 +62,6 @@ public class GameManager {
 
     public CorpseManager getCorpseManager() {
         return corpseManager;
-    }
-
-    public GunManager getGunManager() {
-        return gunManager;
     }
 
     public void shutdown() {

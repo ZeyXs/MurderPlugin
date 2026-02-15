@@ -7,7 +7,6 @@ import fr.zeyx.murder.manager.GameManager;
 import fr.zeyx.murder.arena.task.SetupWizardTask;
 import fr.zeyx.murder.util.TextUtil;
 import fr.zeyx.murder.util.ItemBuilder;
-import net.wesjd.anvilgui.AnvilGUI;
 import net.kyori.adventure.text.Component;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.bukkit.*;
@@ -18,20 +17,23 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SetupWizardManager implements Listener {
 
-    private GameManager gameManager;
-    private Map<UUID, TemporaryArena> inWizard = new HashMap<>();
+    private final GameManager gameManager;
+    private final Map<UUID, TemporaryArena> inWizard = new ConcurrentHashMap<>();
+    private final Set<UUID> awaitingArenaNameInput = ConcurrentHashMap.newKeySet();
 
     private static final int MIN_SPAWN_SPOTS = 15;
     private static final int MIN_EMERALD_SPOTS = 1;
@@ -60,6 +62,7 @@ public class SetupWizardManager implements Listener {
         setupWizardTask.runTaskTimer(MurderPlugin.getInstance(), 0, 10);
 
         inWizard.put(player.getUniqueId(), temporaryArena);
+        awaitingArenaNameInput.remove(player.getUniqueId());
         gameManager.getConfigurationManager().saveRollback(player);
 
         player.setGameMode(GameMode.CREATIVE);
@@ -88,6 +91,7 @@ public class SetupWizardManager implements Listener {
 
     public void endWizard(Player player) {
         inWizard.remove(player.getUniqueId());
+        awaitingArenaNameInput.remove(player.getUniqueId());
 
         player.getInventory().clear();
         gameManager.getConfigurationManager().loadRollback(player);
@@ -142,19 +146,7 @@ public class SetupWizardManager implements Listener {
 
         } else if (Objects.equals(itemName, SET_ARENA_DISPLAY_NAME_ITEM_NAME)) {
             player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 50, 1);
-            new AnvilGUI.Builder()
-                    .title("◆ Arena name")
-                    .itemLeft(new ItemBuilder(Material.PAPER).setName(TextUtil.itemComponent("Choose a name")).toItemStack())
-                    .plugin(MurderPlugin.getInstance())
-                    .onClick((anvilPlayer, state) -> {
-                        if (gameManager.getArenaManager().getArenas().stream().anyMatch(allArenas -> allArenas.getDisplayName().equalsIgnoreCase(state.getText()))) {
-                            return List.of(AnvilGUI.ResponseAction.replaceInputText("This arena already exists!"));
-                        }
-                        arena.setDisplayName(state.getText());
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
-                        player.sendMessage(TextUtil.prefixed("&aSet arena display name to &3" + state.getText() + "&7!"));
-                        return List.of(AnvilGUI.ResponseAction.close());
-                    }).open(player);
+            startChatNameInput(player, arena);
 
         } else if (Objects.equals(itemName, ADD_EMERALD_SPOT_ITEM_NAME)) {
             Location location = player.getLocation();
@@ -199,6 +191,41 @@ public class SetupWizardManager implements Listener {
     }
 
     @EventHandler
+    public void onNameChatInput(AsyncPlayerChatEvent event) {
+        Player player = event.getPlayer();
+        UUID playerId = player.getUniqueId();
+        if (!awaitingArenaNameInput.contains(playerId) || !inWizard(player)) {
+            return;
+        }
+        event.setCancelled(true);
+        String message = event.getMessage();
+
+        Bukkit.getScheduler().runTask(MurderPlugin.getInstance(), task -> {
+            if (!awaitingArenaNameInput.remove(playerId)) {
+                return;
+            }
+            if (!inWizard(player)) {
+                return;
+            }
+            TemporaryArena arena = inWizard.get(playerId);
+            if (arena == null) {
+                return;
+            }
+
+            String input = message == null ? "" : message.trim();
+            if (input.equalsIgnoreCase("cancel")) {
+                player.sendMessage(TextUtil.prefixed("&7Arena name input cancelled."));
+                return;
+            }
+
+            if (!trySetArenaDisplayName(player, arena, input)) {
+                awaitingArenaNameInput.add(playerId);
+                player.sendMessage(TextUtil.prefixed("&eType another arena name in chat, or type &ccancel&e."));
+            }
+        });
+    }
+
+    @EventHandler
     public void onBreakBlock(BlockBreakEvent event) {
         Player player = event.getPlayer();
         if (inWizard(player)) event.setCancelled(true);
@@ -240,6 +267,64 @@ public class SetupWizardManager implements Listener {
                     && existing.getBlockZ() == location.getBlockZ()) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    private void startChatNameInput(Player player, TemporaryArena arena) {
+        if (player == null || arena == null) {
+            return;
+        }
+        awaitingArenaNameInput.add(player.getUniqueId());
+        String currentName = arena.getDisplayName();
+        if (currentName != null && !currentName.isBlank()) {
+            player.sendMessage(TextUtil.prefixed("&7Current arena display name: &3" + currentName));
+        }
+        player.sendMessage(TextUtil.prefixed("&eType the arena name in chat, or type &ccancel&e."));
+    }
+
+    private boolean trySetArenaDisplayName(Player player, TemporaryArena arena, String input) {
+        if (arena == null || input == null) {
+            return false;
+        }
+        String trimmed = input.trim();
+        if (trimmed.isEmpty()) {
+            if (player != null) {
+                player.sendMessage(TextUtil.prefixed("&cArena name cannot be empty."));
+            }
+            return false;
+        }
+        if (isDuplicateArenaDisplayName(arena, trimmed)) {
+            if (player != null) {
+                player.sendMessage(TextUtil.prefixed("&cThis arena already exists."));
+            }
+            return false;
+        }
+        arena.setDisplayName(trimmed);
+        if (player != null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 50, 2);
+            player.sendMessage(TextUtil.prefixed("&aSet arena display name to &3" + trimmed + "&7!"));
+        }
+        return true;
+    }
+
+    private boolean isDuplicateArenaDisplayName(TemporaryArena currentArena, String candidateDisplayName) {
+        if (candidateDisplayName == null || candidateDisplayName.isBlank()) {
+            return true;
+        }
+        String currentDisplay = currentArena == null ? null : currentArena.getDisplayName();
+        for (Arena existing : gameManager.getArenaManager().getArenas()) {
+            if (existing == null) {
+                continue;
+            }
+            String existingDisplay = existing.getDisplayName();
+            if (existingDisplay == null || !existingDisplay.equalsIgnoreCase(candidateDisplayName)) {
+                continue;
+            }
+            if (currentDisplay != null && currentDisplay.equalsIgnoreCase(candidateDisplayName)) {
+                continue;
+            }
+            return true;
         }
         return false;
     }
