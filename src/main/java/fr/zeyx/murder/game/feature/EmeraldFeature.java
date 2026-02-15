@@ -39,6 +39,7 @@ public class EmeraldFeature {
 
     private static final int EMERALD_SLOT = 7;
     private static final int EMERALD_SPAWN_INTERVAL_TICKS = 20 * 5;
+    private static final double EMERALD_SPAWN_Y_OFFSET = 0.35D;
     private static final int WEAPON_UPGRADE_EMERALD_COUNT = 5;
     private static final String EMERALD_ITEM_NAME = "&fEmerald";
     private static final String MURDERER_PICKUP_MESSAGE = "&aYou found an emerald!";
@@ -361,7 +362,7 @@ public class EmeraldFeature {
         return new Location(
                 location.getWorld(),
                 location.getBlockX() + 0.5D,
-                location.getBlockY() + 0.15D,
+                location.getBlockY() + EMERALD_SPAWN_Y_OFFSET,
                 location.getBlockZ() + 0.5D
         );
     }

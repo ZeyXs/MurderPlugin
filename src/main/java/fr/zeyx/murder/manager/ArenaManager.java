@@ -2,6 +2,7 @@ package fr.zeyx.murder.manager;
 
 import fr.zeyx.murder.arena.Arena;
 import fr.zeyx.murder.arena.vote.MapVoteSession;
+import fr.zeyx.murder.command.CommandArgs;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -38,30 +39,54 @@ public class ArenaManager {
     }
 
     public void addArena(Arena arena) {
+        if (arena == null) {
+            return;
+        }
         arenaList.add(arena);
     }
 
     public void removeArena(Arena arena) {
-        this.arenaList.removeIf(existing -> existing.equals(arena));
+        if (arena == null) {
+            return;
+        }
+        removeArena(arena.getName());
+    }
+
+    public void removeArena(String arenaName) {
+        if (arenaName == null || arenaName.isBlank()) {
+            return;
+        }
+        this.arenaList.removeIf(existing ->
+                existing != null && existing.getName() != null && existing.getName().equalsIgnoreCase(arenaName)
+        );
+    }
+
+    public void upsertArena(String previousName, Arena arena) {
+        if (arena == null || arena.getName() == null || arena.getName().isBlank()) {
+            return;
+        }
+        if (previousName != null && !previousName.isBlank()) {
+            removeArena(previousName);
+        }
+        removeArena(arena.getName());
+        addArena(arena);
     }
 
     public Optional<Arena> findArena(String configName) {
-        return arenaList.stream().filter(arena -> arena.getName().equalsIgnoreCase(configName)).findAny();
+        if (configName == null || configName.isBlank()) {
+            return Optional.empty();
+        }
+        return arenaList.stream()
+                .filter(arena -> arena != null && arena.getName() != null && arena.getName().equalsIgnoreCase(configName))
+                .findAny();
     }
 
     public Optional<Arena> findArena(String[] commandArgs) {
-        StringBuilder name = new StringBuilder();
-
-        int index = 0;
-        for (String arg : commandArgs) {
-            if (arg.equalsIgnoreCase("edit")) continue;
-            name.append(arg);
-            if (index == commandArgs.length - 3) {
-                name.append("_");
-            }
-            index++;
+        String arenaName = CommandArgs.joinArgs(commandArgs, 1);
+        if (arenaName.isBlank()) {
+            arenaName = CommandArgs.joinArgs(commandArgs, 0);
         }
-        return findArena(name.toString());
+        return findArena(arenaName);
     }
 
     public Optional<Arena> getCurrentArena(Player player) {

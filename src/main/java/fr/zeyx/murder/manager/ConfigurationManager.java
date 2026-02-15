@@ -37,6 +37,10 @@ public class ConfigurationManager {
         arenaConfig.removeArena(arena);
     }
 
+    public void removeArena(String arenaName) {
+        arenaConfig.removeArena(arenaName);
+    }
+
     public Location getLobbyLocation() {
         return arenaConfig.getLobbyLocation();
     }

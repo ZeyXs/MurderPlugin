@@ -62,19 +62,21 @@ public class ArenaSubCommand implements PlayerSubCommand {
                 return CommandResult.INVALID_USAGE;
             }
 
-            player.sendMessage(TextUtil.prefixed("&cThis command is currently disabled."));
-            return CommandResult.FAILURE;
-
-            /*
-            Optional<Arena> optionalArena = gameManager.getArenaManager().findArena(args);
+            String arenaName = CommandArgs.joinArgs(args, 1);
+            Optional<Arena> optionalArena = gameManager.getArenaManager().findArena(arenaName);
             if (optionalArena.isEmpty()) {
-                player.sendMessage(Colorize.color("&c◆ &7No arena by that name exists."));
-                return;
+                player.sendMessage(TextUtil.prefixed("&cNo arena by that name exists."));
+                return CommandResult.FAILURE;
             }
 
             Arena arena = optionalArena.get();
+            if (!arena.getActivePlayers().isEmpty()) {
+                player.sendMessage(TextUtil.prefixed("&cYou cannot edit an arena while players are inside it."));
+                return CommandResult.FAILURE;
+            }
             gameManager.getSetupWizardManager().startWizard(player, arena);
-            return;*/
+            player.sendMessage(TextUtil.prefixed("&7Editing arena &e" + arena.getDisplayName() + "&7."));
+            return CommandResult.SUCCESS;
         }
 
         if (args[0].equalsIgnoreCase("remove")) {

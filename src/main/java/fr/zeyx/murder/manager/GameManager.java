@@ -2,7 +2,6 @@ package fr.zeyx.murder.manager;
 
 import fr.zeyx.murder.MurderPlugin;
 import fr.zeyx.murder.arena.Arena;
-import fr.zeyx.murder.arena.setup.SetupWizardManager;
 import fr.zeyx.murder.game.GameSession;
 import fr.zeyx.murder.game.service.TabListService;
 import fr.zeyx.murder.game.service.NametagService;

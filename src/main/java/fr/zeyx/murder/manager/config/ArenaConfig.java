@@ -78,8 +78,18 @@ public class ArenaConfig {
     }
 
     public void removeArena(Arena arena) {
-        if (arenasConfiguration.isConfigurationSection(arena.getName())) {
-            arenasConfiguration.set(arena.getName(), null);
+        if (arena == null) {
+            return;
+        }
+        removeArena(arena.getName());
+    }
+
+    public void removeArena(String arenaName) {
+        if (arenaName == null || arenaName.isBlank()) {
+            return;
+        }
+        if (arenasConfiguration.isConfigurationSection(arenaName)) {
+            arenasConfiguration.set(arenaName, null);
         }
         saveArenaConfig();
     }

@@ -23,10 +23,18 @@ public class TemporaryArena {
         this.displayName = arena.getDisplayName();
         this.spawnLocation = arena.getSpawnLocation();
         if (arena.getSpawnSpots() != null) {
-            this.spawnSpots.addAll(arena.getSpawnSpots());
+            for (Location spawnSpot : arena.getSpawnSpots()) {
+                if (spawnSpot != null) {
+                    this.spawnSpots.add(spawnSpot);
+                }
+            }
         }
         if (arena.getEmeraldSpots() != null) {
-            this.emeraldSpots.addAll(arena.getEmeraldSpots());
+            for (Location emeraldSpot : arena.getEmeraldSpots()) {
+                if (emeraldSpot != null) {
+                    this.emeraldSpots.add(emeraldSpot);
+                }
+            }
         }
 
     }
@@ -38,7 +46,15 @@ public class TemporaryArena {
     }
 
     public Arena toArena() {
-        return new Arena(name, displayName, spawnLocation, new ArrayList<>(spawnSpots), new ArrayList<>(emeraldSpots), new ArrayList<>(), new InitArenaState());
+        return new Arena(
+                name,
+                displayName,
+                spawnLocation,
+                filterNullLocations(spawnSpots),
+                filterNullLocations(emeraldSpots),
+                new ArrayList<>(),
+                new InitArenaState()
+        );
     }
 
     public String getName() {
@@ -68,6 +84,19 @@ public class TemporaryArena {
 
     public List<Location> getEmeraldSpots() {
         return emeraldSpots;
+    }
+
+    private List<Location> filterNullLocations(List<Location> locations) {
+        List<Location> filtered = new ArrayList<>();
+        if (locations == null) {
+            return filtered;
+        }
+        for (Location location : locations) {
+            if (location != null) {
+                filtered.add(location);
+            }
+        }
+        return filtered;
     }
 
 }
